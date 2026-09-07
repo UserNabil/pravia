@@ -76,14 +76,15 @@ model Category {
   ogImage         String?
   noIndex         Boolean @default(false)
 
-  products Product[]
+  translations CategoryTranslation[]
+  products     Product[]
 }
 
 model Brand {
-  id       String @id @default(cuid()) @db.NVarChar(36)
+  id       String    @id @default(cuid()) @db.NVarChar(36)
   name     String
-  slug     String @unique @db.NVarChar(200)
-  accent   String @default("#64748b")
+  slug     String    @unique @db.NVarChar(200)
+  accent   String    @default("#64748b")
   products Product[]
 }
 
@@ -124,14 +125,15 @@ model Product {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  category Category       @relation(fields: [categoryId], references: [id])
-  brand    Brand          @relation(fields: [brandId], references: [id])
-  images   ProductImage[]
-  specs    ProductSpec[]
-  reviews  Review[]
-  cartItems CartItem[]
-  orderItems OrderItem[]
-  wishlist WishlistItem[]
+  category     Category             @relation(fields: [categoryId], references: [id])
+  brand        Brand                @relation(fields: [brandId], references: [id])
+  translations ProductTranslation[]
+  images       ProductImage[]
+  specs        ProductSpec[]
+  reviews      Review[]
+  cartItems    CartItem[]
+  orderItems   OrderItem[]
+  wishlist     WishlistItem[]
 
   @@index([categoryId])
   @@index([brandId])
@@ -157,7 +159,8 @@ model ProductSpec {
   value     String
   sortOrder Int    @default(0)
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product      Product                  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  translations ProductSpecTranslation[]
 
   @@index([productId])
 }
@@ -194,10 +197,10 @@ model WishlistItem {
 // ---------------------------------------------------------------- Commandes
 
 model Order {
-  id       String @id @default(cuid()) @db.NVarChar(36)
-  number   String @unique @db.NVarChar(200)
-  userId   String @db.NVarChar(36)
-  status   String @default("PENDING") @db.NVarChar(200) // PENDING | PAID | SHIPPED | DELIVERED | CANCELLED | REFUNDED
+  id     String @id @default(cuid()) @db.NVarChar(36)
+  number String @unique @db.NVarChar(200)
+  userId String @db.NVarChar(36)
+  status String @default("PENDING") @db.NVarChar(200) // PENDING | PAID | SHIPPED | DELIVERED | CANCELLED | REFUNDED
 
   subtotal Int
   shipping Int
@@ -228,7 +231,7 @@ model Order {
 }
 
 model OrderItem {
-  id        String @id @default(cuid()) @db.NVarChar(36)
+  id        String  @id @default(cuid()) @db.NVarChar(36)
   orderId   String @db.NVarChar(36)
   productId String? @db.NVarChar(36)
 
@@ -275,17 +278,19 @@ model Setting {
 /// Metadonnees des pages editoriales, editables depuis le back-office.
 /// Les produits et categories portent leurs propres champs SEO.
 model SeoPage {
-  id              String   @id @default(cuid()) @db.NVarChar(36)
-  path            String   @unique @db.NVarChar(200) // "/", "/produits", "/aide"
+  id              String  @id @default(cuid()) @db.NVarChar(36)
+  path            String  @unique @db.NVarChar(200) // "/", "/produits", "/aide"
   label           String
   metaTitle       String?
   metaDescription String? @db.NVarChar(Max)
   ogImage         String?
-  noIndex         Boolean  @default(false)
-  changeFrequency String   @default("weekly")
-  priority        Float    @default(0.5)
-  inSitemap       Boolean  @default(true)
-  updatedAt       DateTime @updatedAt
+  noIndex         Boolean @default(false)
+  changeFrequency String  @default("weekly")
+  priority        Float   @default(0.5)
+  inSitemap       Boolean @default(true)
+
+  translations SeoPageTranslation[]
+  updatedAt    DateTime             @updatedAt
 }
 
 // ------------------------------------------------------------------- Recherche
@@ -331,4 +336,75 @@ model Account {
   @@unique([provider, providerAccountId])
   @@index([userId])
   @@index([provider])
+}
+
+// ------------------------------------------------------------- Traductions
+
+/// Traduction d'une fiche produit.
+/// Les champs vides retombent sur la version de reference du produit : une
+/// fiche partiellement traduite reste donc affichable.
+model ProductTranslation {
+  id        String @id @default(cuid()) @db.NVarChar(36)
+  productId String @db.NVarChar(36)
+  locale    String @db.NVarChar(200) // fr | en | ar
+
+  title           String?
+  subtitle        String?
+  description     String? @db.NVarChar(Max)
+  metaTitle       String?
+  metaDescription String? @db.NVarChar(Max)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, locale])
+  @@index([locale])
+}
+
+/// Traduction d'une caracteristique technique.
+/// Le libelle se traduit toujours ; la valeur seulement lorsqu'elle porte du
+/// texte ("Vert", "Oui"), jamais lorsqu'elle est purement technique ("120 Hz").
+model ProductSpecTranslation {
+  id     String @id @default(cuid()) @db.NVarChar(36)
+  specId String @db.NVarChar(36)
+  locale String @db.NVarChar(200)
+
+  label String?
+  value String?
+
+  spec ProductSpec @relation(fields: [specId], references: [id], onDelete: Cascade)
+
+  @@unique([specId, locale])
+  @@index([locale])
+}
+
+/// Traduction d'une categorie : nom affiche, accroche et metadonnees.
+model CategoryTranslation {
+  id         String @id @default(cuid()) @db.NVarChar(36)
+  categoryId String @db.NVarChar(36)
+  locale     String @db.NVarChar(200)
+
+  name            String?
+  description     String? @db.NVarChar(Max)
+  metaTitle       String?
+  metaDescription String? @db.NVarChar(Max)
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, locale])
+  @@index([locale])
+}
+
+/// Traduction des metadonnees d'une page editoriale.
+model SeoPageTranslation {
+  id        String @id @default(cuid()) @db.NVarChar(36)
+  seoPageId String @db.NVarChar(36)
+  locale    String @db.NVarChar(200)
+
+  metaTitle       String?
+  metaDescription String? @db.NVarChar(Max)
+
+  seoPage SeoPage @relation(fields: [seoPageId], references: [id], onDelete: Cascade)
+
+  @@unique([seoPageId, locale])
+  @@index([locale])
 }

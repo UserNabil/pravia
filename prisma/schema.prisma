@@ -66,14 +66,15 @@ model Category {
   ogImage         String?
   noIndex         Boolean @default(false)
 
-  products Product[]
+  translations CategoryTranslation[]
+  products     Product[]
 }
 
 model Brand {
-  id       String @id @default(cuid())
+  id       String    @id @default(cuid())
   name     String
-  slug     String @unique
-  accent   String @default("#64748b")
+  slug     String    @unique
+  accent   String    @default("#64748b")
   products Product[]
 }
 
@@ -114,14 +115,15 @@ model Product {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  category Category       @relation(fields: [categoryId], references: [id])
-  brand    Brand          @relation(fields: [brandId], references: [id])
-  images   ProductImage[]
-  specs    ProductSpec[]
-  reviews  Review[]
-  cartItems CartItem[]
-  orderItems OrderItem[]
-  wishlist WishlistItem[]
+  category     Category             @relation(fields: [categoryId], references: [id])
+  brand        Brand                @relation(fields: [brandId], references: [id])
+  translations ProductTranslation[]
+  images       ProductImage[]
+  specs        ProductSpec[]
+  reviews      Review[]
+  cartItems    CartItem[]
+  orderItems   OrderItem[]
+  wishlist     WishlistItem[]
 
   @@index([categoryId])
   @@index([brandId])
@@ -148,7 +150,8 @@ model ProductSpec {
   value     String
   sortOrder Int    @default(0)
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product      Product                  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  translations ProductSpecTranslation[]
 
   @@index([productId])
 }
@@ -185,10 +188,10 @@ model WishlistItem {
 // ---------------------------------------------------------------- Commandes
 
 model Order {
-  id       String @id @default(cuid())
-  number   String @unique
-  userId   String
-  status   String @default("PENDING") // PENDING | PAID | SHIPPED | DELIVERED | CANCELLED | REFUNDED
+  id     String @id @default(cuid())
+  number String @unique
+  userId String
+  status String @default("PENDING") // PENDING | PAID | SHIPPED | DELIVERED | CANCELLED | REFUNDED
 
   subtotal Int
   shipping Int
@@ -219,7 +222,7 @@ model Order {
 }
 
 model OrderItem {
-  id        String @id @default(cuid())
+  id        String  @id @default(cuid())
   orderId   String
   productId String?
 
@@ -266,17 +269,19 @@ model Setting {
 /// Metadonnees des pages editoriales, editables depuis le back-office.
 /// Les produits et categories portent leurs propres champs SEO.
 model SeoPage {
-  id              String   @id @default(cuid())
-  path            String   @unique // "/", "/produits", "/aide"
+  id              String  @id @default(cuid())
+  path            String  @unique // "/", "/produits", "/aide"
   label           String
   metaTitle       String?
   metaDescription String?
   ogImage         String?
-  noIndex         Boolean  @default(false)
-  changeFrequency String   @default("weekly")
-  priority        Float    @default(0.5)
-  inSitemap       Boolean  @default(true)
-  updatedAt       DateTime @updatedAt
+  noIndex         Boolean @default(false)
+  changeFrequency String  @default("weekly")
+  priority        Float   @default(0.5)
+  inSitemap       Boolean @default(true)
+
+  translations SeoPageTranslation[]
+  updatedAt    DateTime             @updatedAt
 }
 
 // ------------------------------------------------------------------- Recherche
@@ -322,4 +327,75 @@ model Account {
   @@unique([provider, providerAccountId])
   @@index([userId])
   @@index([provider])
+}
+
+// ------------------------------------------------------------- Traductions
+
+/// Traduction d'une fiche produit.
+/// Les champs vides retombent sur la version de reference du produit : une
+/// fiche partiellement traduite reste donc affichable.
+model ProductTranslation {
+  id        String @id @default(cuid())
+  productId String
+  locale    String // fr | en | ar
+
+  title           String?
+  subtitle        String?
+  description     String?
+  metaTitle       String?
+  metaDescription String?
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, locale])
+  @@index([locale])
+}
+
+/// Traduction d'une caracteristique technique.
+/// Le libelle se traduit toujours ; la valeur seulement lorsqu'elle porte du
+/// texte ("Vert", "Oui"), jamais lorsqu'elle est purement technique ("120 Hz").
+model ProductSpecTranslation {
+  id     String @id @default(cuid())
+  specId String
+  locale String
+
+  label String?
+  value String?
+
+  spec ProductSpec @relation(fields: [specId], references: [id], onDelete: Cascade)
+
+  @@unique([specId, locale])
+  @@index([locale])
+}
+
+/// Traduction d'une categorie : nom affiche, accroche et metadonnees.
+model CategoryTranslation {
+  id         String @id @default(cuid())
+  categoryId String
+  locale     String
+
+  name            String?
+  description     String?
+  metaTitle       String?
+  metaDescription String?
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, locale])
+  @@index([locale])
+}
+
+/// Traduction des metadonnees d'une page editoriale.
+model SeoPageTranslation {
+  id        String @id @default(cuid())
+  seoPageId String
+  locale    String
+
+  metaTitle       String?
+  metaDescription String?
+
+  seoPage SeoPage @relation(fields: [seoPageId], references: [id], onDelete: Cascade)
+
+  @@unique([seoPageId, locale])
+  @@index([locale])
 }

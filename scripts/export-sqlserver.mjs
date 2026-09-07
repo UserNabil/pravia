@@ -32,6 +32,10 @@ const TABLES = [
   { name: "Product", read: () => db.product.findMany() },
   { name: "ProductImage", read: () => db.productImage.findMany() },
   { name: "ProductSpec", read: () => db.productSpec.findMany() },
+  // Traductions : elles dependent de leur entite parente, donc juste apres elle.
+  { name: "ProductTranslation", read: () => db.productTranslation.findMany() },
+  { name: "ProductSpecTranslation", read: () => db.productSpecTranslation.findMany() },
+  { name: "CategoryTranslation", read: () => db.categoryTranslation.findMany() },
   { name: "Review", read: () => db.review.findMany() },
   { name: "CartItem", read: () => db.cartItem.findMany() },
   { name: "WishlistItem", read: () => db.wishlistItem.findMany() },
@@ -39,6 +43,7 @@ const TABLES = [
   { name: "OrderItem", read: () => db.orderItem.findMany() },
   { name: "Setting", read: () => db.setting.findMany() },
   { name: "SeoPage", read: () => db.seoPage.findMany() },
+  { name: "SeoPageTranslation", read: () => db.seoPageTranslation.findMany() },
   { name: "SearchSynonym", read: () => db.searchSynonym.findMany() },
   { name: "SearchQuery", read: () => db.searchQuery.findMany() },
 ];

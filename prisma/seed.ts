@@ -1475,6 +1475,9 @@ async function main() {
       { key: "shipping.freeThreshold", value: "15000" },
       { key: "shipping.flatRate", value: "990" },
       { key: "banner.text", value: "Livraison offerte des 150 EUR - Retours gratuits sous 30 jours" },
+      // Le bandeau se decline par langue : la cle suffixee prime sur la generique.
+      { key: "banner.text.en", value: "Free delivery over 150 EUR - Free returns within 30 days" },
+      { key: "banner.text.ar", value: "شحن مجاني ابتداءً من 150 يورو - إرجاع مجاني خلال 30 يومًا" },
     ],
   });
 

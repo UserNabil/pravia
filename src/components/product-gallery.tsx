@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/format";
 
 export function ProductGallery({
@@ -11,12 +12,13 @@ export function ProductGallery({
   images: { id: string; url: string; alt: string }[];
   title: string;
 }) {
+  const t = useTranslations("product");
   const [active, setActive] = useState(0);
 
   if (!images.length) {
     return (
       <div className="surface-card flex aspect-square items-center justify-center text-sm text-muted-2">
-        Aucun visuel disponible
+        {t("noImage")}
       </div>
     );
   }
@@ -30,20 +32,14 @@ export function ProductGallery({
               key={image.id}
               type="button"
               onClick={() => setActive(index)}
-              aria-label={`Visuel ${index + 1}`}
+              aria-label={t("imageLabel", { index: index + 1 })}
               aria-current={index === active}
               className={cn(
                 "size-16 shrink-0 rounded-xl border bg-surface-2 p-1.5 transition-colors",
                 index === active ? "border-primary" : "border-border hover:border-border-strong"
               )}
             >
-              <Image
-                src={image.url}
-                alt=""
-                width={80}
-                height={80}
-                className="size-full object-contain"
-              />
+              <Image src={image.url} alt="" width={80} height={80} className="size-full object-contain" />
             </button>
           ))}
         </div>

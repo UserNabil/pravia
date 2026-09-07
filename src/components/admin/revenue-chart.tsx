@@ -1,4 +1,7 @@
-import { formatPrice } from "@/lib/format";
+"use client";
+
+import { useFormat } from "@/lib/use-format";
+import { useTranslations } from "next-intl";
 
 export type ChartPoint = { label: string; value: number; fullLabel: string };
 
@@ -6,6 +9,8 @@ export type ChartPoint = { label: string; value: number; fullLabel: string };
  * Courbe de chiffre d'affaires en SVG pur : pas de librairie, net dans les deux themes.
  */
 export function RevenueChart({ points }: { points: ChartPoint[] }) {
+  const t = useTranslations("admin.chart");
+  const format = useFormat();
   const width = 720;
   const height = 220;
   const padding = { top: 16, right: 8, bottom: 26, left: 8 };
@@ -32,7 +37,7 @@ export function RevenueChart({ points }: { points: ChartPoint[] }) {
         viewBox={`0 0 ${width} ${height}`}
         className="h-56 w-full min-w-[32rem]"
         role="img"
-        aria-label="Chiffre d'affaires des 30 derniers jours"
+        aria-label={t("revenue30")}
       >
         <defs>
           <linearGradient id="revenue-area" x1="0" y1="0" x2="0" y2="1">
@@ -66,7 +71,7 @@ export function RevenueChart({ points }: { points: ChartPoint[] }) {
         {points.map((point, index) => (
           <g key={point.fullLabel}>
             <circle cx={x(index)} cy={y(point.value)} r="9" fill="transparent">
-              <title>{`${point.fullLabel} : ${formatPrice(point.value)}`}</title>
+              <title>{`${point.fullLabel} : ${format.price(point.value)}`}</title>
             </circle>
             {point.value > 0 && (
               <circle cx={x(index)} cy={y(point.value)} r="2.5" fill="var(--primary)" />
@@ -89,14 +94,21 @@ export function RevenueChart({ points }: { points: ChartPoint[] }) {
   );
 }
 
-/** Barres horizontales : repartition des ventes par categorie. */
+/**
+ * Barres horizontales : repartition des ventes par categorie.
+ *
+ * La mise en forme se fait ici plutot que par une fonction recue en
+ * propriete : un composant serveur ne peut pas transmettre de fonction a un
+ * composant client.
+ */
 export function BarList({
   rows,
-  formatValue = (value: number) => String(value),
+  format: kind = "price",
 }: {
   rows: { label: string; value: number }[];
-  formatValue?: (value: number) => string;
+  format?: "price" | "number";
 }) {
+  const format = useFormat();
   const max = Math.max(...rows.map((r) => r.value), 1);
 
   return (
@@ -105,7 +117,7 @@ export function BarList({
         <li key={row.label}>
           <div className="flex items-baseline justify-between gap-3 text-sm">
             <span className="truncate">{row.label}</span>
-            <span className="shrink-0 font-semibold tabular-nums">{formatValue(row.value)}</span>
+            <span className="shrink-0 font-semibold tabular-nums">{kind === "price" ? format.price(row.value) : format.number(row.value)}</span>
           </div>
           <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
             <div

@@ -5,7 +5,9 @@
  */
 import { chromium } from "playwright";
 
-const BASE = process.argv[2] ?? "http://localhost:3000";
+const ORIGIN = process.argv[2] ?? "http://localhost:3000";
+/** Les pages vivent sous un prefixe de langue ; les fichiers techniques non. */
+const BASE = `${ORIGIN}/fr`;
 
 const results = [];
 function check(name, passed, detail = "") {
@@ -18,7 +20,12 @@ const page = await browser.newPage();
 
 /** Extrait les balises SEO utiles d'une page rendue. */
 async function inspect(path) {
-  const response = await page.goto(`${BASE}${path}`, { waitUntil: "networkidle" });
+  return inspectAt(`${BASE}${path}`);
+}
+
+/** Meme releve, sur une adresse complete. */
+async function inspectAt(url) {
+  const response = await page.goto(url, { waitUntil: "networkidle" });
   return {
     status: response?.status(),
     ...(await page.evaluate(() => {
@@ -33,6 +40,11 @@ async function inspect(path) {
         ogType: meta('meta[property="og:type"]'),
         twitterCard: meta('meta[name="twitter:card"]'),
         lang: document.documentElement.lang,
+        dir: document.documentElement.dir,
+        alternates: [...document.querySelectorAll('link[rel="alternate"][hreflang]')].map((l) => ({
+          hreflang: l.getAttribute("hreflang"),
+          href: l.getAttribute("href"),
+        })),
         h1Count: document.querySelectorAll("h1").length,
         imagesWithoutAlt: [...document.querySelectorAll("img")].filter(
           (img) => !img.hasAttribute("alt")
@@ -97,6 +109,23 @@ try {
   check("Categorie : indexable", !category.robots?.includes("noindex"), category.robots ?? "index par defaut");
   check("Categorie : canonique sans parasites", category.canonical?.includes("categorie=smartphones") ?? false, category.canonical ?? "");
 
+  /* ------------------------------------------------------------- langues */
+  check(
+    "Accueil : alternances de langue declarees",
+    ["fr-FR", "en-GB", "ar-MA", "x-default"].every((tag) =>
+      home.alternates.some((a) => a.hreflang === tag)
+    ),
+    home.alternates.map((a) => a.hreflang).join(", ")
+  );
+
+  const arabic = await inspectAt(`${ORIGIN}/ar`);
+  check("Accueil arabe : sens d'ecriture", arabic.lang === "ar" && arabic.dir === "rtl", `lang=${arabic.lang} dir=${arabic.dir}`);
+  check(
+    "Accueil arabe : canonique propre a la langue",
+    (arabic.canonical ?? "").endsWith("/ar"),
+    arabic.canonical ?? ""
+  );
+
   /* ------------------------------------------------------------ recherche */
   const search = await inspect("/produits?q=iphone");
   check("Recherche : exclue de l'index", search.robots?.includes("noindex") ?? false, search.robots ?? "");
@@ -110,20 +139,31 @@ try {
   check("Aide : schema FAQPage", help.jsonLd.includes("FAQPage"), help.jsonLd.join(", "));
 
   /* --------------------------------------------------- fichiers techniques */
-  const robots = await page.goto(`${BASE}/robots.txt`);
+  const robots = await page.goto(`${ORIGIN}/robots.txt`);
   const robotsBody = await robots.text();
   check("robots.txt servi", robots.status() === 200);
   check("robots.txt reference le sitemap", robotsBody.includes("sitemap.xml"));
-  check("robots.txt protege le back-office", robotsBody.includes("Disallow: /admin"));
+  check(
+    "robots.txt protege le back-office",
+    ["fr", "en", "ar"].every((locale) => robotsBody.includes(`Disallow: /${locale}/admin`))
+  );
 
-  const sitemap = await page.goto(`${BASE}/sitemap.xml`);
+  const sitemap = await page.goto(`${ORIGIN}/sitemap.xml`);
   const sitemapBody = await sitemap.text();
   const urlCount = (sitemapBody.match(/<loc>/g) ?? []).length;
   check("sitemap.xml servi", sitemap.status() === 200);
   check("sitemap contient le catalogue", urlCount >= 45, `${urlCount} URL`);
-  check("sitemap exclut les pages privees", !sitemapBody.includes("/panier") && !sitemapBody.includes("/admin"));
+  check(
+    "sitemap exclut les pages privees",
+    !sitemapBody.includes("/panier") && !sitemapBody.includes("/admin")
+  );
+  check(
+    "sitemap declare les trois langues",
+    ["fr", "en", "ar"].every((locale) => sitemapBody.includes(`/${locale}/produits/`)),
+    "hreflang par URL"
+  );
 
-  const manifest = await page.goto(`${BASE}/manifest.webmanifest`);
+  const manifest = await page.goto(`${ORIGIN}/manifest.webmanifest`);
   check("manifest servi", manifest.status() === 200, `HTTP ${manifest.status()}`);
 
   const og = await page.goto(`${BASE}/opengraph-image`);
@@ -142,7 +182,7 @@ try {
   // Les URL absolues proviennent de l'adresse configuree en base, qui peut
   // differer du port de test : on ne garde que le chemin.
   const productOgUrl = new URL(product.ogImage);
-  const productOg = await page.goto(`${BASE}${productOgUrl.pathname}${productOgUrl.search}`);
+  const productOg = await page.goto(`${ORIGIN}${productOgUrl.pathname}${productOgUrl.search}`);
   check(
     "image sociale produit generee",
     productOg.status() === 200 && (productOg.headers()["content-type"] ?? "").includes("image"),

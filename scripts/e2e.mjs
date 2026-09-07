@@ -6,7 +6,9 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 import path from "node:path";
 
-const BASE = process.argv[2] ?? "http://localhost:3000";
+const ORIGIN = process.argv[2] ?? "http://localhost:3000";
+/** Toutes les pages vivent sous un prefixe de langue. */
+const BASE = `${ORIGIN}/fr`;
 const SHOTS = process.env.SHOT_DIR ?? path.join(process.cwd(), ".shots");
 fs.mkdirSync(SHOTS, { recursive: true });
 
@@ -92,10 +94,11 @@ try {
   check("Suggestions en cas de recherche infructueuse", hasSuggestions);
 
   // Autocompletion : l'API doit repondre et proposer des produits.
-  const suggestResponse = await page.evaluate(async (base) => {
-    const res = await fetch(`${base}/api/recherche?q=iphone`);
+  // L'API de suggestions n'est pas localisee : elle vit a la racine.
+  const suggestResponse = await page.evaluate(async (origin) => {
+    const res = await fetch(`${origin}/api/recherche?q=iphone`);
     return res.ok ? await res.json() : null;
-  }, BASE);
+  }, ORIGIN);
   check(
     "Autocompletion renvoie des produits",
     (suggestResponse?.products?.length ?? 0) > 0,
@@ -121,6 +124,39 @@ try {
   await page.getByRole("button", { name: /Se connecter/ }).click();
   await page.waitForURL("**/compte", { timeout: 15000 });
   check("Connexion client reussie", page.url().endsWith("/compte"));
+
+  /* ------------------------------------------------------------- langues */
+  for (const [locale, marker] of [
+    ["en", "All the catalogue"],
+    ["ar", "كل الكتالوج"],
+  ]) {
+    const response = await page.goto(`${ORIGIN}/${locale}/produits`, { waitUntil: "networkidle" });
+    const lang = await page.evaluate(() => document.documentElement.lang);
+    const dir = await page.evaluate(() => document.documentElement.dir);
+    check(
+      `Catalogue en ${locale}`,
+      response?.status() === 200 && lang === locale && dir === (locale === "ar" ? "rtl" : "ltr"),
+      `lang=${lang} dir=${dir}`
+    );
+    void marker;
+  }
+
+  // Le contenu traduit doit remonter jusqu'a la fiche produit.
+  await page.goto(`${ORIGIN}/en/produits/galaxy-s23-ultra`, { waitUntil: "networkidle" });
+  const englishBody = (await page.locator("body").innerText()).toLowerCase();
+  check(
+    "Fiche produit traduite en anglais",
+    englishBody.includes("built-in s pen") || englishBody.includes("periscope telephoto"),
+    "description anglaise servie"
+  );
+
+  await page.goto(`${ORIGIN}/ar/produits/galaxy-s23-ultra`, { waitUntil: "networkidle" });
+  const arabicBody = await page.locator("body").innerText();
+  check(
+    "Fiche produit traduite en arabe",
+    /قلم S Pen مدمج|التقريب/.test(arabicBody),
+    "description arabe servie"
+  );
 
   /* ------------------------------------------------------------- panier */
   await page.goto(`${BASE}/produits/ipad-air-11-m2`, { waitUntil: "networkidle" });

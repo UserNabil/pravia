@@ -9,14 +9,6 @@ export const ORDER_STATUSES = [
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
-export const ORDER_STATUS_LABELS: Record<string, string> = {
-  PENDING: "En attente",
-  PAID: "Payee",
-  SHIPPED: "Expediee",
-  DELIVERED: "Livree",
-  CANCELLED: "Annulee",
-  REFUNDED: "Remboursee",
-};
 
 export const ORDER_STATUS_STYLES: Record<string, string> = {
   PENDING: "bg-amber-500/12 text-amber-600 dark:text-amber-400 ring-amber-500/25",
@@ -29,6 +21,34 @@ export const ORDER_STATUS_STYLES: Record<string, string> = {
 
 export const CONDITIONS = ["NEW", "REFURBISHED", "SECOND_HAND"] as const;
 
+
+
+export const SORT_OPTIONS = [
+  { value: "best-sellers", key: "bestSellers" },
+  { value: "newest", key: "newest" },
+  { value: "price-asc", key: "priceAsc" },
+  { value: "price-desc", key: "priceDesc" },
+  { value: "rating", key: "rating" },
+] as const;
+
+/** Frais de port : offerts au-dessus du seuil. */
+export const FREE_SHIPPING_THRESHOLD = 15000; // 150,00 EUR
+export const SHIPPING_FLAT_RATE = 990; // 9,90 EUR
+export const VAT_RATE = 0.2;
+
+/**
+ * Libelles du back-office, encore monolingue.
+ * La boutique, elle, passe par les catalogues de traduction.
+ */
+export const ORDER_STATUS_LABELS: Record<string, string> = {
+  PENDING: "En attente",
+  PAID: "Payee",
+  SHIPPED: "Expediee",
+  DELIVERED: "Livree",
+  CANCELLED: "Annulee",
+  REFUNDED: "Remboursee",
+};
+
 export const CONDITION_LABELS: Record<string, string> = {
   NEW: "Neuf",
   REFURBISHED: "Reconditionne",
@@ -40,16 +60,3 @@ export const REVIEW_STATUS_LABELS: Record<string, string> = {
   PUBLISHED: "Publie",
   REJECTED: "Rejete",
 };
-
-export const SORT_OPTIONS = [
-  { value: "best-sellers", label: "Meilleures ventes" },
-  { value: "newest", label: "Nouveautes" },
-  { value: "price-asc", label: "Prix croissant" },
-  { value: "price-desc", label: "Prix decroissant" },
-  { value: "rating", label: "Mieux notes" },
-] as const;
-
-/** Frais de port : offerts au-dessus du seuil. */
-export const FREE_SHIPPING_THRESHOLD = 15000; // 150,00 EUR
-export const SHIPPING_FLAT_RATE = 990; // 9,90 EUR
-export const VAT_RATE = 0.2;

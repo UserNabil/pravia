@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import type { ProviderId } from "@/lib/oauth";
 
 /**
@@ -99,12 +100,13 @@ export function ProviderMark({ provider }: { provider: ProviderId }) {
 export function ProviderButtons({
   providers,
   redirectTo,
-  action = "Continuer avec",
+  action,
 }: {
   providers: { id: ProviderId; label: string }[];
   redirectTo?: string;
-  action?: string;
+  action: string;
 }) {
+  const t = useTranslations("auth");
   if (!providers.length) return null;
 
   const query = redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : "";
@@ -113,7 +115,7 @@ export function ProviderButtons({
     <div className="space-y-3">
       <div className="flex items-center gap-3">
         <span className="h-px flex-1 bg-border" />
-        <span className="text-xs text-muted-2">ou</span>
+        <span className="text-xs text-muted-2">{t("or")}</span>
         <span className="h-px flex-1 bg-border" />
       </div>
 

@@ -1,20 +1,33 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { redirectLocalized } from "@/lib/redirect";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { routing } from "@/i18n/routing";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
 import { slugify } from "@/lib/format";
 import { rebuildSearchIndex, syncProductSearchText } from "@/lib/search-index";
 import { ORDER_STATUSES } from "@/lib/constants";
 
-export type AdminState = { error?: string; success?: string };
+/**
+ * Retour d'une action du back-office.
+ *
+ * Les actions renvoient des cles, pas du texte : c'est le composant qui rend
+ * le message dans la langue de son interface.
+ */
+export type AdminState = {
+  errorKey?: string;
+  successKey?: string;
+  values?: Record<string, string | number>;
+};
 
 /** Toute action du back-office passe par ce garde-fou. */
 async function guard() {
   const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") redirect("/connexion?redirectTo=/admin");
+  if (!user || user.role !== "ADMIN") {
+    return redirectLocalized("/connexion?redirectTo=/admin");
+  }
   return user;
 }
 
@@ -27,18 +40,18 @@ function refreshAdmin(...paths: string[]) {
 /* ------------------------------------------------------------------ produits */
 
 const productSchema = z.object({
-  title: z.string().min(2, "Le titre est requis"),
+  title: z.string().min(2, "titleRequired"),
   subtitle: z.string().optional(),
-  description: z.string().min(10, "La description doit faire au moins 10 caracteres"),
-  price: z.coerce.number().min(0.01, "Prix invalide"),
+  description: z.string().min(10, "descriptionTooShort"),
+  price: z.coerce.number().min(0.01, "invalidPrice"),
   compareAtPrice: z.coerce.number().optional(),
   stock: z.coerce.number().int().min(0),
-  sku: z.string().min(1, "La reference est requise"),
+  sku: z.string().min(1, "skuRequired"),
   condition: z.enum(["NEW", "REFURBISHED", "SECOND_HAND"]),
   minOrder: z.coerce.number().int().min(1),
   warrantyMonths: z.coerce.number().int().min(0),
-  categoryId: z.string().min(1, "Categorie requise"),
-  brandId: z.string().min(1, "Marque requise"),
+  categoryId: z.string().min(1, "categoryRequired"),
+  brandId: z.string().min(1, "brandRequired"),
   storage: z.string().optional(),
   color: z.string().optional(),
   carrier: z.string().optional(),
@@ -87,12 +100,12 @@ async function uniqueSlug(title: string, currentId?: string) {
 export async function createProductAction(_prev: AdminState, formData: FormData): Promise<AdminState> {
   await guard();
   const parsed = productSchema.safeParse(readProductForm(formData));
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success) return { errorKey: parsed.error.issues[0].message };
 
   const data = parsed.data;
 
   const skuTaken = await db.product.findUnique({ where: { sku: data.sku } });
-  if (skuTaken) return { error: `La reference ${data.sku} est deja utilisee.` };
+  if (skuTaken) return { errorKey: "skuTaken", values: { sku: data.sku } };
 
   const product = await db.product.create({
     data: {
@@ -130,7 +143,7 @@ export async function createProductAction(_prev: AdminState, formData: FormData)
   await syncProductSearchText(product.id);
 
   refreshAdmin("/produits");
-  redirect(`/admin/produits/${product.id}?enregistre=1`);
+  return redirectLocalized(`/admin/produits/${product.id}?enregistre=1`);
 }
 
 export async function updateProductAction(
@@ -140,13 +153,13 @@ export async function updateProductAction(
 ): Promise<AdminState> {
   await guard();
   const parsed = productSchema.safeParse(readProductForm(formData));
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success) return { errorKey: parsed.error.issues[0].message };
 
   const data = parsed.data;
 
   const skuOwner = await db.product.findUnique({ where: { sku: data.sku }, select: { id: true } });
   if (skuOwner && skuOwner.id !== productId) {
-    return { error: `La reference ${data.sku} est deja utilisee.` };
+    return { errorKey: "skuTaken", values: { sku: data.sku } };
   }
 
   await db.product.update({
@@ -192,10 +205,75 @@ export async function updateProductAction(
   }
 
   await saveSpecs(productId, formData);
+  await saveProductTranslations(productId, formData);
   await syncProductSearchText(productId);
 
   refreshAdmin("/produits");
-  return { success: "Produit enregistre." };
+  return { successKey: "productSaved" };
+}
+
+/**
+ * Lit les champs de traduction d'un formulaire.
+ *
+ * Ils arrivent sous la forme `tr.<langue>.<champ>`. Un champ vide n'est pas
+ * une erreur : il fait simplement retomber l'affichage sur la version de
+ * reference, ce qui permet de traduire au fil de l'eau.
+ */
+function readTranslations(formData: FormData, fields: readonly string[]) {
+  const result: { locale: string; data: Record<string, string | null> }[] = [];
+
+  for (const locale of routing.locales) {
+    if (locale === routing.defaultLocale) continue;
+
+    const data: Record<string, string | null> = {};
+    for (const field of fields) {
+      const raw = formData.get(`tr.${locale}.${field}`);
+      data[field] = raw === null ? null : String(raw).trim() || null;
+    }
+    result.push({ locale, data });
+  }
+
+  return result;
+}
+
+/** Enregistre les traductions d'un produit, en supprimant celles devenues vides. */
+async function saveProductTranslations(productId: string, formData: FormData) {
+  const fields = ["title", "subtitle", "description", "metaTitle", "metaDescription"] as const;
+
+  for (const { locale, data } of readTranslations(formData, fields)) {
+    const empty = Object.values(data).every((value) => value === null);
+
+    if (empty) {
+      await db.productTranslation.deleteMany({ where: { productId, locale } });
+      continue;
+    }
+
+    await db.productTranslation.upsert({
+      where: { productId_locale: { productId, locale } },
+      update: data,
+      create: { productId, locale, ...data },
+    });
+  }
+}
+
+/** Meme principe pour une categorie. */
+async function saveCategoryTranslations(categoryId: string, formData: FormData) {
+  const fields = ["name", "description", "metaTitle", "metaDescription"] as const;
+
+  for (const { locale, data } of readTranslations(formData, fields)) {
+    const empty = Object.values(data).every((value) => value === null);
+
+    if (empty) {
+      await db.categoryTranslation.deleteMany({ where: { categoryId, locale } });
+      continue;
+    }
+
+    await db.categoryTranslation.upsert({
+      where: { categoryId_locale: { categoryId, locale } },
+      update: data,
+      create: { categoryId, locale, ...data },
+    });
+  }
 }
 
 /** Les caracteristiques sont envoyees en lignes paralleles specLabel[] / specValue[]. */
@@ -247,7 +325,7 @@ export async function deleteProductAction(productId: string) {
   });
 
   refreshAdmin("/produits");
-  redirect("/admin/produits?supprime=1");
+  return redirectLocalized("/admin/produits?supprime=1");
 }
 
 export async function bulkStockAction(productId: string, formData: FormData) {
@@ -268,11 +346,11 @@ export async function saveCategoryAction(_prev: AdminState, formData: FormData):
   const description = String(formData.get("description") ?? "").trim() || null;
   const sortOrder = Number(formData.get("sortOrder") ?? 0);
 
-  if (name.length < 2) return { error: "Le nom est requis." };
+  if (name.length < 2) return { errorKey: "nameRequired" };
 
   const slug = slugify(name);
   const clash = await db.category.findUnique({ where: { slug }, select: { id: true } });
-  if (clash && clash.id !== id) return { error: "Une categorie porte deja ce nom." };
+  if (clash && clash.id !== id) return { errorKey: "categoryNameTaken" };
 
   const seo = {
     metaTitle: String(formData.get("metaTitle") ?? "").trim() || null,
@@ -287,12 +365,16 @@ export async function saveCategoryAction(_prev: AdminState, formData: FormData):
     });
     // Le nom de la categorie alimente l'index : il faut le repercuter.
     await reindexProductsOf({ categoryId: id });
+    await saveCategoryTranslations(id, formData);
   } else {
-    await db.category.create({ data: { name, slug, icon, description, sortOrder, ...seo } });
+    const created = await db.category.create({
+      data: { name, slug, icon, description, sortOrder, ...seo },
+    });
+    await saveCategoryTranslations(created.id, formData);
   }
 
   refreshAdmin();
-  return { success: id ? "Categorie mise a jour." : "Categorie creee." };
+  return { successKey: id ? "categoryUpdated" : "categoryCreated" };
 }
 
 export async function deleteCategoryAction(id: string): Promise<void> {
@@ -311,11 +393,11 @@ export async function saveBrandAction(_prev: AdminState, formData: FormData): Pr
   const name = String(formData.get("name") ?? "").trim();
   const accent = String(formData.get("accent") ?? "#64748b");
 
-  if (name.length < 1) return { error: "Le nom est requis." };
+  if (name.length < 1) return { errorKey: "nameRequired" };
 
   const slug = slugify(name);
   const clash = await db.brand.findUnique({ where: { slug }, select: { id: true } });
-  if (clash && clash.id !== id) return { error: "Une marque porte deja ce nom." };
+  if (clash && clash.id !== id) return { errorKey: "brandNameTaken" };
 
   if (id) {
     await db.brand.update({ where: { id }, data: { name, slug, accent } });
@@ -325,7 +407,7 @@ export async function saveBrandAction(_prev: AdminState, formData: FormData): Pr
   }
 
   refreshAdmin();
-  return { success: id ? "Marque mise a jour." : "Marque creee." };
+  return { successKey: id ? "brandUpdated" : "brandCreated" };
 }
 
 export async function deleteBrandAction(id: string): Promise<void> {
@@ -388,8 +470,8 @@ export async function setUserRoleAction(userId: string, role: string) {
 }
 
 const createUserSchema = z.object({
-  name: z.string().min(2, "Nom requis"),
-  email: z.string().email("E-mail invalide"),
+  name: z.string().min(2, "userNameRequired"),
+  email: z.string().email("invalidEmail"),
   password: z.string().min(8, "8 caracteres minimum"),
   role: z.enum(["CUSTOMER", "ADMIN"]),
 });
@@ -403,10 +485,10 @@ export async function createUserAction(_prev: AdminState, formData: FormData): P
     role: String(formData.get("role") ?? "CUSTOMER"),
   });
 
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success) return { errorKey: parsed.error.issues[0].message };
 
   const existing = await db.user.findUnique({ where: { email: parsed.data.email } });
-  if (existing) return { error: "Cette adresse est deja utilisee." };
+  if (existing) return { errorKey: "emailTaken" };
 
   await db.user.create({
     data: {
@@ -418,17 +500,17 @@ export async function createUserAction(_prev: AdminState, formData: FormData): P
   });
 
   refreshAdmin();
-  return { success: "Compte cree." };
+  return { successKey: "userCreated" };
 }
 
 /** Supprime un compte et ses donnees, en conservant l'historique de commandes. */
 export async function deleteUserAction(
   userId: string
-): Promise<{ message: string; tone: "success" | "error" }> {
+): Promise<{ messageKey: string; values?: Record<string, number>; tone: "success" | "error" }> {
   const admin = await guard();
   // Un administrateur ne peut pas supprimer son propre compte.
   if (userId === admin.id) {
-    return { message: "Vous ne pouvez pas supprimer votre propre compte.", tone: "error" };
+    return { messageKey: "cannotDeleteSelf", tone: "error" };
   }
 
   const orderCount = await db.order.count({ where: { userId } });
@@ -444,10 +526,7 @@ export async function deleteUserAction(
       },
     });
     refreshAdmin();
-    return {
-      message: `Compte desactive : ses ${orderCount} commande(s) doivent etre conservees.`,
-      tone: "success",
-    };
+    return { messageKey: "userDisabled", values: { count: orderCount }, tone: "success" };
   }
 
   await db.$transaction(async (tx) => {
@@ -459,7 +538,7 @@ export async function deleteUserAction(
   });
 
   refreshAdmin();
-  return { message: "Compte supprime.", tone: "success" };
+  return { messageKey: "userDeleted", tone: "success" };
 }
 
 /* ------------------------------------------------------------------ reglages */
@@ -474,7 +553,11 @@ export async function saveSettingsAction(_prev: AdminState, formData: FormData):
     "store.phone",
     "shipping.freeThreshold",
     "shipping.flatRate",
+    // Le bandeau se decline par langue ; la cle nue sert de repli.
     "banner.text",
+    "banner.text.fr",
+    "banner.text.en",
+    "banner.text.ar",
   ];
 
   for (const key of keys) {
@@ -483,7 +566,7 @@ export async function saveSettingsAction(_prev: AdminState, formData: FormData):
   }
 
   refreshAdmin();
-  return { success: "Reglages enregistres." };
+  return { successKey: "settingsSaved" };
 }
 
 /* ------------------------------------------------------------- referencement */
@@ -518,7 +601,7 @@ export async function saveSeoSettingsAction(
 
   const siteUrl = String(formData.get("seo.siteUrl") ?? "").trim();
   if (siteUrl && !/^https?:\/\/[^\s/]+/i.test(siteUrl)) {
-    return { error: "L'adresse du site doit commencer par http:// ou https://" };
+    return { errorKey: "siteUrlScheme" };
   }
 
   for (const key of SEO_KEYS) {
@@ -535,19 +618,14 @@ export async function saveSeoSettingsAction(
   });
 
   refreshAdmin();
-  return {
-    success:
-      indexable === "1"
-        ? "Reglages enregistres. Le site est ouvert a l'indexation."
-        : "Reglages enregistres. Le site est ferme aux robots (robots.txt bloquant).",
-  };
+  return { successKey: indexable === "1" ? "seoSavedIndexable" : "seoSavedBlocked" };
 }
 
 export async function saveSeoPageAction(_prev: AdminState, formData: FormData): Promise<AdminState> {
   await guard();
 
   const path = String(formData.get("path") ?? "").trim();
-  if (!path.startsWith("/")) return { error: "Le chemin doit commencer par /" };
+  if (!path.startsWith("/")) return { errorKey: "pathLeadingSlash" };
 
   const priority = Number(formData.get("priority") ?? 0.5);
 
@@ -565,7 +643,7 @@ export async function saveSeoPageAction(_prev: AdminState, formData: FormData): 
   await db.seoPage.upsert({ where: { path }, update: data, create: { path, ...data } });
 
   refreshAdmin(path);
-  return { success: "Page enregistree." };
+  return { successKey: "pageSaved" };
 }
 
 /* ------------------------------------------------------------------ recherche */
@@ -577,8 +655,8 @@ export async function saveSynonymAction(_prev: AdminState, formData: FormData): 
   const term = normalize(String(formData.get("term") ?? ""));
   const targets = String(formData.get("targets") ?? "").trim();
 
-  if (!term) return { error: "Le terme recherche est requis." };
-  if (!targets) return { error: "Indiquez au moins un terme de remplacement." };
+  if (!term) return { errorKey: "synonymTermRequired" };
+  if (!targets) return { errorKey: "synonymTargetsRequired" };
 
   await db.searchSynonym.upsert({
     where: { term },
@@ -587,7 +665,7 @@ export async function saveSynonymAction(_prev: AdminState, formData: FormData): 
   });
 
   refreshAdmin();
-  return { success: `"${term}" renvoie desormais vers "${targets}".` };
+  return { successKey: "synonymSaved", values: { term, targets } };
 }
 
 export async function deleteSynonymAction(id: string): Promise<void> {

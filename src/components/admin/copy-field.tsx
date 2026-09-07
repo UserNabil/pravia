@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Check, Copy } from "lucide-react";
 
 /** Champ en lecture seule avec copie : evite les erreurs de recopie manuelle. */
@@ -13,6 +14,7 @@ export function CopyField({
   value: string;
   hint?: string;
 }) {
+  const t = useTranslations("admin.common");
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -39,7 +41,7 @@ export function CopyField({
         <button
           type="button"
           onClick={copy}
-          aria-label="Copier"
+          aria-label={copied ? t("copied") : t("copy")}
           className="btn btn-secondary shrink-0 px-3"
         >
           {copied ? <Check className="size-4 text-success" /> : <Copy className="size-4" />}

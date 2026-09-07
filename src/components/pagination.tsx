@@ -1,5 +1,6 @@
-import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/format";
 
 /** Fenetre glissante de 5 pages autour de la page courante. */
@@ -11,7 +12,7 @@ function pageWindow(page: number, pageCount: number) {
   return pages;
 }
 
-export function Pagination({
+export async function Pagination({
   page,
   pageCount,
   baseParams,
@@ -22,6 +23,7 @@ export function Pagination({
   baseParams: URLSearchParams;
   basePath?: string;
 }) {
+  const t = await getTranslations("catalogue");
   if (pageCount <= 1) return null;
 
   const hrefFor = (target: number) => {
@@ -32,14 +34,15 @@ export function Pagination({
   };
 
   return (
-    <nav aria-label="Pagination" className="mt-8 flex items-center justify-center gap-1.5">
+    <nav aria-label={t("pagination")} className="mt-8 flex items-center justify-center gap-1.5">
       {page > 1 ? (
-        <Link href={hrefFor(page - 1)} className="btn btn-secondary size-9 p-0" aria-label="Page precedente">
-          <ChevronLeft className="size-4" />
+        <Link href={hrefFor(page - 1)} className="btn btn-secondary size-9 p-0" aria-label={t("previousPage")}>
+          {/* Les chevrons suivent le sens de lecture grace a rtl:rotate-180. */}
+          <ChevronLeft className="size-4 rtl:rotate-180" />
         </Link>
       ) : (
         <span className="btn btn-secondary size-9 cursor-not-allowed p-0 opacity-45">
-          <ChevronLeft className="size-4" />
+          <ChevronLeft className="size-4 rtl:rotate-180" />
         </span>
       )}
 
@@ -55,12 +58,12 @@ export function Pagination({
       ))}
 
       {page < pageCount ? (
-        <Link href={hrefFor(page + 1)} className="btn btn-secondary size-9 p-0" aria-label="Page suivante">
-          <ChevronRight className="size-4" />
+        <Link href={hrefFor(page + 1)} className="btn btn-secondary size-9 p-0" aria-label={t("nextPage")}>
+          <ChevronRight className="size-4 rtl:rotate-180" />
         </Link>
       ) : (
         <span className="btn btn-secondary size-9 cursor-not-allowed p-0 opacity-45">
-          <ChevronRight className="size-4" />
+          <ChevronRight className="size-4 rtl:rotate-180" />
         </span>
       )}
     </nav>

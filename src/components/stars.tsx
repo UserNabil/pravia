@@ -1,7 +1,8 @@
+import { getTranslations } from "next-intl/server";
 import { Star } from "lucide-react";
 import { cn } from "@/lib/format";
 
-export function Stars({
+export async function Stars({
   rating,
   size = "sm",
   showValue = false,
@@ -12,12 +13,13 @@ export function Stars({
   showValue?: boolean;
   count?: number;
 }) {
+  const t = await getTranslations("reviews");
   const dimensions = { xs: "size-3", sm: "size-3.5", md: "size-4" }[size];
 
   return (
     <span
       className="inline-flex items-center gap-1"
-      aria-label={`Note : ${rating} sur 5${count !== undefined ? `, ${count} avis` : ""}`}
+      aria-label={t("ratingLabel", { rating: rating.toFixed(1) })}
     >
       <span className="flex items-center gap-px" aria-hidden="true">
         {[1, 2, 3, 4, 5].map((index) => {
@@ -41,22 +43,52 @@ export function Stars({
           {rating > 0 ? rating.toFixed(1) : "-"}
         </span>
       )}
-      {count !== undefined && (
-        <span className="text-xs text-muted-2">({count})</span>
-      )}
+      {count !== undefined && <span className="text-xs text-muted-2">({count})</span>}
     </span>
   );
 }
 
 /** Variante compacte utilisee sur les vignettes du catalogue. */
-export function RatingBadge({ rating }: { rating: number }) {
+export async function RatingBadge({ rating }: { rating: number }) {
+  const t = await getTranslations("common");
+
   if (rating <= 0) {
-    return <span className="text-xs text-muted-2">Nouveau</span>;
+    return <span className="text-xs text-muted-2">{t("new")}</span>;
   }
   return (
     <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold">
       <Star className="size-3.5 fill-star text-star" strokeWidth={1.8} />
       <span className="tabular-nums">{rating.toFixed(1)}</span>
+    </span>
+  );
+}
+
+/** Version cliente, pour les composants interactifs (formulaire d'avis). */
+export function StarsStatic({
+  rating,
+  size = "sm",
+  label,
+}: {
+  rating: number;
+  size?: "xs" | "sm" | "md";
+  label?: string;
+}) {
+  const dimensions = { xs: "size-3", sm: "size-3.5", md: "size-4" }[size];
+
+  return (
+    <span className="inline-flex items-center gap-1" aria-label={label}>
+      <span className="flex items-center gap-px" aria-hidden="true">
+        {[1, 2, 3, 4, 5].map((index) => (
+          <Star
+            key={index}
+            className={cn(
+              dimensions,
+              rating >= index - 0.25 ? "fill-star text-star" : "fill-transparent text-border-strong"
+            )}
+            strokeWidth={1.8}
+          />
+        ))}
+      </span>
     </span>
   );
 }

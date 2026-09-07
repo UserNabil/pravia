@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Heart, LayoutDashboard, LogOut, Package, Settings, User } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 import { logoutAction } from "@/app/actions/auth";
 import type { SessionUser } from "@/lib/auth";
 
 export function UserMenu({ user }: { user: SessionUser | null }) {
+  const t = useTranslations("account");
+  const tNav = useTranslations("nav");
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -28,13 +31,13 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
 
   if (!user) {
     return (
-      <div className="flex items-center gap-2">
-        <Link href="/connexion" className="btn btn-ghost hidden sm:inline-flex">
-          Connexion
+      <div className="flex shrink-0 items-center gap-1.5">
+        <Link href="/connexion" className="btn btn-ghost hidden shrink-0 lg:inline-flex">
+          {t("signIn")}
         </Link>
-        <Link href="/inscription" className="btn btn-primary">
-          <span className="hidden sm:inline">Creer un compte</span>
-          <span className="sm:hidden">S&apos;inscrire</span>
+        <Link href="/inscription" className="btn btn-primary shrink-0 px-3 sm:px-4">
+          <span className="hidden lg:inline">{t("signUp")}</span>
+          <span className="lg:hidden">{t("signUpShort")}</span>
         </Link>
       </div>
     );
@@ -54,7 +57,7 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label="Menu du compte"
+        aria-label={t("menu")}
         className="flex size-9 items-center justify-center rounded-full text-xs font-bold text-white ring-2 ring-transparent transition-all hover:ring-border-strong"
         style={{ backgroundColor: user.avatarColor }}
       >
@@ -64,7 +67,7 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-xl border border-border bg-surface shadow-xl shadow-black/20"
+          className="absolute end-0 top-11 z-50 w-56 overflow-hidden rounded-xl border border-border bg-surface shadow-xl shadow-black/20"
         >
           <div className="border-b border-border px-3.5 py-3">
             <p className="truncate text-sm font-semibold">{user.name}</p>
@@ -74,20 +77,20 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
           <nav className="p-1">
             {user.role === "ADMIN" && (
               <MenuLink href="/admin" icon={LayoutDashboard} onSelect={() => setOpen(false)}>
-                Back-office
+                {tNav("backoffice")}
               </MenuLink>
             )}
             <MenuLink href="/compte" icon={User} onSelect={() => setOpen(false)}>
-              Mon compte
+              {t("myAccount")}
             </MenuLink>
             <MenuLink href="/compte/commandes" icon={Package} onSelect={() => setOpen(false)}>
-              Mes commandes
+              {t("myOrders")}
             </MenuLink>
             <MenuLink href="/favoris" icon={Heart} onSelect={() => setOpen(false)}>
-              Mes favoris
+              {t("myFavourites")}
             </MenuLink>
             <MenuLink href="/compte/adresses" icon={Settings} onSelect={() => setOpen(false)}>
-              Mes adresses
+              {t("myAddresses")}
             </MenuLink>
           </nav>
 
@@ -97,7 +100,7 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
               className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-danger transition-colors hover:bg-danger/10"
             >
               <LogOut className="size-4" />
-              Se deconnecter
+              {t("signOut")}
             </button>
           </form>
         </div>

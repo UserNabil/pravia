@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { LayoutGrid } from "lucide-react";
 import { CategoryIcon } from "./category-icon";
 
@@ -10,6 +11,7 @@ export function CategoryMenu({
 }: {
   categories: { id: string; slug: string; name: string; icon: string; description: string | null }[];
 }) {
+  const t = useTranslations("nav");
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -38,11 +40,11 @@ export function CategoryMenu({
         className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-[0.8125rem] font-semibold transition-colors hover:bg-surface-2"
       >
         <LayoutGrid className="size-4" />
-        Categories
+        {t("categories")}
       </button>
 
       {open && (
-        <div className="absolute left-0 top-10 z-50 w-[min(46rem,calc(100vw-3rem))] rounded-xl border border-border bg-surface p-2 shadow-xl shadow-black/20">
+        <div className="absolute start-0 top-10 z-50 w-[min(46rem,calc(100vw-3rem))] rounded-xl border border-border bg-surface p-2 shadow-xl shadow-black/20">
           <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
             {categories.map((category) => (
               <Link

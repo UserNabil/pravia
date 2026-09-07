@@ -6,6 +6,9 @@ Smartphones, ordinateurs, tablettes, audio, montres, gaming, photo, composants e
 40 références réparties en 9 catégories et 15 marques, avec panier, commande, avis clients et
 administration complète.
 
+Le site et son back-office existent en **français, anglais et arabe**, l'arabe s'affichant de
+droite à gauche.
+
 ![Next.js](https://img.shields.io/badge/Next.js-16-black) ![React](https://img.shields.io/badge/React-19-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue) ![Prisma](https://img.shields.io/badge/Prisma-7-2D3748) ![Tailwind](https://img.shields.io/badge/Tailwind-4-06B6D4)
 
 ---
@@ -101,6 +104,29 @@ Tout est piloté depuis `/admin/seo`, rien n'est codé en dur :
 
 `npm run seo` vérifie l'ensemble en 34 points sur le site réellement rendu.
 
+### Langues
+
+Trois langues, toutes préfixées dans l'adresse : `/fr`, `/en`, `/ar`. L'arabe s'affiche de
+droite à gauche, mise en page comprise — la feuille de style n'emploie que des propriétés
+logiques (`start`/`end` plutôt que `left`/`right`), si bien qu'il n'existe pas de second jeu de
+règles à maintenir.
+
+| Ce qui est traduit | Où cela vit |
+| --- | --- |
+| Interface de la boutique et du back-office | `messages/fr.json`, `en.json`, `ar.json` — 975 clés chacun |
+| Fiches produit, catégories, caractéristiques | En base, tables `…Translation` |
+| Bandeau promotionnel | Réglages du back-office, un champ par langue |
+| Métadonnées de référencement | Par langue, avec `hreflang` et sitemap multilingue |
+
+Un champ de traduction laissé vide retombe sur la version française : une fiche à moitié traduite
+reste lisible. Le back-office édite ces traductions dans un onglet par langue.
+
+`npm run i18n:check` vérifie que les trois catalogues portent exactement les mêmes clés, que les
+variables d'interpolation concordent, et que chaque pluriel arabe couvre bien ses **six** formes
+(zéro, un, deux, quelques, beaucoup, autre).
+
+---
+
 ### Thèmes et responsive
 
 Trois modes — **clair**, **sombre**, **système** — accessibles depuis l'en-tête, le menu mobile,
@@ -108,6 +134,9 @@ le pied de page et le back-office. Le choix est mémorisé et appliqué sans fla
 
 L'interface est conçue pour mobile d'abord : tiroir de navigation, tiroir de filtres, tableaux
 défilants horizontalement, grilles de 2 à 4 colonnes selon la largeur.
+
+`npm run responsive` passe 12 pages sur 6 largeurs (320 à 1440 px), en LTR et en RTL, et échoue
+au moindre débordement horizontal ou commande tactile sous 24 px.
 
 ---
 
@@ -121,6 +150,7 @@ défilants horizontalement, grilles de 2 à 4 colonnes selon la largeur.
 | Authentification | **jose** (JWT) + **bcryptjs** | Session en cookie `httpOnly`, sans dépendance externe |
 | Connexions externes | OAuth 2.0 / OIDC écrit sur mesure | 5 fournisseurs, PKCE et vérification de signature, sans bibliothèque tierce |
 | Validation | **zod** | Toutes les entrées serveur sont validées avant écriture |
+| Langues | **next-intl 4** | Routage par langue, messages ICU, pluriels arabes complets |
 | Icônes | **lucide-react** | |
 | Tests | **Playwright** | Parcours de bout en bout scripté |
 | Production | **IIS** + HttpPlatformHandler, **SQL Server**, **Cloudflare Tunnel** | Voir [DEPLOIEMENT.md](DEPLOIEMENT.md) |
@@ -137,24 +167,42 @@ sur mesure et un back-office `wp-admin` qu'on ne maîtrise pas. Ici, l'ensemble 
 ## Organisation du code
 
 ```
+messages/
+  fr.json, en.json, ar.json  Interface traduite, 975 clés par langue
 prisma/
-  schema.prisma          Modèle de données (17 tables), source unique
+  schema.prisma          Modèle de données (21 tables), source unique
   schema.sqlserver.prisma  Variante SQL Server, générée
   descriptions.ts        Second paragraphe éditorial de chaque fiche
   seed.ts                Jeu de démonstration, idempotent
+public/
+  logo*.png, icon*.png   Fichiers de marque officiels, fond transparent
+  products/              Visuels produits générés en SVG
 scripts/
+  content/               Traductions de contenu : produits, catégories, specs
+  import-content-translations.mts  Charge ces traductions en base
   gen-images.mjs         Génère les visuels produits en SVG
   schema-sqlserver.mjs   Dérive le schéma SQL Server du schéma de référence
   export-sqlserver.mjs   Exporte les données SQLite en T-SQL
+  export-translations-sqlserver.mts  Exporte les seules traductions en T-SQL
+  gen-migration-i18n.mjs Extrait la migration multilingue additive
+  merge-messages.mjs     Fusionne un lot de traductions dans les 3 catalogues
   package-iis.mjs        Assemble le paquet de déploiement IIS
-  e2e.mjs                Parcours de bout en bout (31 vérifications)
-  seo-check.mjs          Audit de référencement sur le site rendu (34 vérifications)
+  e2e.mjs                Parcours de bout en bout (35 vérifications)
+  seo-check.mjs          Audit de référencement sur le site rendu (38 vérifications)
+  responsive-check.mjs   12 pages x 6 largeurs, LTR et RTL (72 combinaisons)
+  i18n-check.mjs         Cohérence des catalogues et pluriels arabes
+  rtl-sweep.mjs          Traque les propriétés directionnelles codées en dur
   shoot.mjs              Capture d'écran ponctuelle
 src/
+  i18n/
+    routing.ts           Langues, sens de lecture, préfixage des chemins
+    navigation.ts        Link et redirect conscients de la langue
+    request.ts           Chargement du catalogue par requête
   app/
-    (boutique)/          Boutique : accueil, catalogue, produit, panier, commande, compte
-    (auth)/              Connexion et inscription
-    admin/               Back-office
+    [locale]/
+      (boutique)/        Boutique : accueil, catalogue, produit, panier, commande, compte
+      (auth)/            Connexion et inscription
+      admin/             Back-office
     actions/             Server Actions (auth, panier, commandes, administration)
   components/            Composants partagés + composants d'administration
   lib/
@@ -169,10 +217,14 @@ src/
     oauth-state.ts       État du flux : state, PKCE, compte en attente
     oauth-link.ts        Rattachement d'un profil externe à un compte
     analytics.ts         Agrégats de vente pour le back-office
-    format.ts            Prix, dates, slugs
+    content.ts           Résolution des contenus traduits, avec repli
+    format.ts            Prix, dates, slugs — chacun accepte une langue
+    use-format.ts        Même chose côté client, langue déduite du contexte
+    redirect.ts          Redirections internes qui conservent la langue
+    og-fonts.ts          Polices embarquées des images sociales (arabe compris)
 ```
 
-### Deux conventions à connaître
+### Quatre conventions à connaître
 
 **Les prix sont stockés en centimes** (entiers). Aucun flottant ne circule : `formatPrice()`
 convertit à l'affichage, les formulaires reconvertissent à la saisie.
@@ -180,6 +232,14 @@ convertit à l'affichage, les formulaires reconvertissent à la saisie.
 **Les visuels produits sont générés**, pas téléchargés. `scripts/gen-images.mjs` produit un SVG
 par appareil (téléphone, portable, casque, manette, carte graphique…) dans `public/products/`.
 Le catalogue reste donc net à toute résolution, sans dépendance réseau ni question de licence.
+
+**La mise en page n'emploie que des propriétés logiques** : `ms-`/`me-`, `ps-`/`pe-`,
+`start-`/`end-`, `text-start`/`text-end`. L'arabe se lit de droite à gauche sans second jeu de
+règles. `npm run rtl:check` échoue si une propriété directionnelle réapparaît.
+
+**Les Server Actions renvoient des clés, pas du texte.** Une action ne sait pas dans quelle langue
+son résultat sera lu : elle renvoie `{ errorKey, values }`, et le composant traduit. Même principe
+pour les redirections, qui passent par `redirectLocalized()` afin de conserver la langue.
 
 ---
 
@@ -194,17 +254,28 @@ npm run db:reset   # remet la base à zéro et recharge la démonstration
 npm run db:studio  # explorateur de base Prisma Studio
 npm run e2e        # parcours de bout en bout (le serveur doit tourner)
 npm run seo        # audit de référencement (le serveur doit tourner)
-npm run verify     # les deux à la suite
+npm run responsive # 12 pages x 6 largeurs, LTR et RTL (le serveur doit tourner)
+npm run i18n:check # cohérence des trois catalogues de traduction
+npm run rtl:check  # aucune propriété directionnelle codée en dur
+npm run verify     # e2e + seo + i18n
+```
+
+Traductions de contenu :
+
+```bash
+npm run db:translations  # (ré)importe scripts/content/*.mjs en base
 ```
 
 Déploiement (voir [DEPLOIEMENT.md](DEPLOIEMENT.md)) :
 
 ```bash
 npm run schema:sqlserver  # dérive prisma/schema.sqlserver.prisma
-npm run sql:schema        # structure T-SQL -> dist-sql/pravia-schema.sql
-npm run sql:data          # données T-SQL   -> dist-sql/pravia-data.sql
-npm run sql:all           # les deux
-npm run build:iis         # paquet IIS complet -> dist-iis/
+npm run sql:schema        # structure T-SQL     -> dist-sql/pravia-schema.sql
+npm run sql:data          # données T-SQL       -> dist-sql/pravia-data.sql
+npm run sql:migration     # migration i18n seule -> dist-sql/pravia-migration-i18n.sql
+npm run sql:translations  # traductions seules   -> dist-sql/pravia-translations.sql
+npm run sql:all           # les quatre
+npm run build:iis         # paquet IIS complet   -> dist-iis/
 ```
 
 ---

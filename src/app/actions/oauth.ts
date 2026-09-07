@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { redirectLocalized } from "@/lib/redirect";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -9,9 +10,9 @@ import { clearPending, peekPending } from "@/lib/oauth-state";
 import { completeWithEmail } from "@/lib/oauth-link";
 import { isProviderId } from "@/lib/oauth";
 
-export type OAuthState = { error?: string };
+export type OAuthState = { errorKey?: string };
 
-const emailSchema = z.string().email("Adresse e-mail invalide");
+const emailSchema = z.string().email("invalidEmail");
 
 /**
  * Termine la creation d'un compte pour un fournisseur qui ne communique pas
@@ -23,31 +24,31 @@ export async function completeSignUpAction(
 ): Promise<OAuthState> {
   const pending = await peekPending();
   if (!pending) {
-    return { error: "La demande a expire. Relancez la connexion depuis la page de connexion." };
+    return { errorKey: "pendingExpired" };
   }
 
   const parsed = emailSchema.safeParse(String(formData.get("email") ?? "").trim());
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success) return { errorKey: parsed.error.issues[0].message };
 
   const result = await completeWithEmail(pending.provider, pending.profile, parsed.data);
-  if (!result.ok) return { error: result.error };
+  if (!result.ok) return { errorKey: result.errorKey };
 
   await clearPending();
   revalidatePath("/", "layout");
-  redirect(pending.redirectTo || "/compte");
+  return redirectLocalized(pending.redirectTo || "/compte");
 }
 
 export async function cancelSignUpAction() {
   await clearPending();
-  redirect("/connexion");
+  return redirectLocalized("/connexion");
 }
 
 /** Detache un fournisseur du compte connecte. */
 export async function unlinkProviderAction(
   accountId: string
-): Promise<{ message: string; tone: "success" | "error" }> {
+): Promise<{ messageKey: string; tone: "success" | "error" }> {
   const user = await getCurrentUser();
-  if (!user) return { message: "Session expiree.", tone: "error" };
+  if (!user) return { messageKey: "sessionExpired", tone: "error" };
 
   const account = await db.account.findUnique({
     where: { id: accountId },
@@ -55,7 +56,7 @@ export async function unlinkProviderAction(
   });
 
   if (!account || account.userId !== user.id) {
-    return { message: "Liaison introuvable.", tone: "error" };
+    return { messageKey: "linkNotFound", tone: "error" };
   }
 
   // Retirer la derniere liaison d'un compte sans mot de passe le rendrait
@@ -66,23 +67,20 @@ export async function unlinkProviderAction(
   ]);
 
   if (remaining <= 1 && !owner?.passwordHash) {
-    return {
-      message:
-        "Impossible de retirer la seule methode de connexion de ce compte. Definissez d'abord un mot de passe.",
-      tone: "error",
-    };
+    return { messageKey: "lastSignInMethod", tone: "error" };
   }
 
   await db.account.delete({ where: { id: accountId } });
   revalidatePath("/compte");
-  return { message: "Liaison retiree.", tone: "success" };
+  return { messageKey: "linkRemoved", tone: "success" };
 }
 
 /** Lie un fournisseur supplementaire au compte deja connecte. */
 export async function linkProviderAction(provider: string) {
   const user = await getCurrentUser();
-  if (!user) redirect("/connexion");
-  if (!isProviderId(provider)) redirect("/compte");
+  if (!user) return redirectLocalized("/connexion");
+  if (!isProviderId(provider)) return redirectLocalized("/compte");
 
+  // Route technique : elle vit hors du prefixe de langue.
   redirect(`/api/auth/${provider}?redirectTo=/compte`);
 }

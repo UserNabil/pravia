@@ -7,6 +7,7 @@ import {
 } from "@/lib/oauth";
 import { challengeFor, createVerifier, randomToken, startFlow } from "@/lib/oauth-state";
 import { getSiteUrl } from "@/lib/seo";
+import { localeFromRequest, withLocale } from "@/lib/redirect";
 
 export const dynamic = "force-dynamic";
 
@@ -22,15 +23,19 @@ export async function GET(
   context: { params: Promise<{ provider: string }> }
 ) {
   const { provider: id } = await context.params;
+  const locale = await localeFromRequest(request);
+  const signIn = withLocale(locale, "/connexion");
 
   if (!isProviderId(id)) {
-    return NextResponse.redirect(new URL("/connexion?erreur=fournisseur-inconnu", request.url));
+    return NextResponse.redirect(
+      new URL(`${signIn}?erreur=fournisseur-inconnu`, request.url)
+    );
   }
 
   const provider = getProvider(id);
   if (!provider.isConfigured()) {
     return NextResponse.redirect(
-      new URL(`/connexion?erreur=non-configure&fournisseur=${id}`, request.url)
+      new URL(`${signIn}?erreur=non-configure&fournisseur=${id}`, request.url)
     );
   }
 

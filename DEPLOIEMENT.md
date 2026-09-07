@@ -96,16 +96,23 @@ L'application se sert d'une base SQLite locale comme **source** du jeu de
 données de démonstration, puis l'exporte au format SQL Server.
 
 ```powershell
-npm run setup     # crée la base SQLite locale et charge la démonstration
-npm run sql:all   # produit dist-sql\pravia-schema.sql et dist-sql\pravia-data.sql
+npm run setup     # crée la base SQLite locale, charge la démonstration
+                  # et importe les traductions anglaises et arabes
+npm run sql:all   # produit les quatre scripts dans dist-sql\
 ```
 
-Vous obtenez deux fichiers :
+Vous obtenez quatre fichiers :
 
-| Fichier | Contenu |
-| --- | --- |
-| `dist-sql\pravia-schema.sql` | 16 tables, 14 clés étrangères, 43 index |
-| `dist-sql\pravia-data.sql` | 594 lignes : 40 produits, 48 commandes, 90 avis… |
+| Fichier | Contenu | Quand l'utiliser |
+| --- | --- | --- |
+| `pravia-schema.sql` | 20 tables, 18 clés étrangères, tous les index | Première installation, base vide |
+| `pravia-data.sql` | 1 082 lignes : 40 produits, 48 commandes, 90 avis, 488 traductions | Première installation, avec la démonstration |
+| `pravia-migration-i18n.sql` | Les 4 tables de traduction seules | **Base déjà en service**, mise à jour multilingue |
+| `pravia-translations.sql` | Les 488 traductions seules | Rafraîchir les textes traduits sans toucher au reste |
+
+> `pravia-data.sql` **purge toutes les tables** avant d'insérer : il ne
+> convient qu'à une première installation. Sur une base qui contient déjà des
+> commandes réelles, utilisez la migration puis le script de traductions.
 
 > Pour partir d'une base **vide** en production, appliquez uniquement le
 > schéma. Vous créerez ensuite le premier administrateur directement en SQL
@@ -303,8 +310,42 @@ cd deploy
 
 Le script **préserve `.env.production`** : vos secrets ne sont pas écrasés.
 
-Si le schéma de données a changé, calculez l'écart et relisez-le avant de
-l'appliquer — `migrate diff` peut proposer des suppressions de colonnes :
+### Mise à jour vers la version multilingue
+
+Cette version ajoute quatre tables et ne modifie aucune table existante. Sur
+une base **déjà en service**, appliquez la migration dédiée plutôt que le
+schéma complet :
+
+```powershell
+# 1. Le code d'abord
+cd C:\pravia
+git pull
+npm install
+npm run build:iis
+
+# 2. La base ensuite : purement additif, relançable sans dommage
+sqlcmd -S localhost -d Pravia -U pravia_app -P "MOT_DE_PASSE" `
+  -i dist-sql\pravia-migration-i18n.sql
+
+# 3. Les textes traduits (40 fiches produit et 9 catégories en EN et AR)
+sqlcmd -S localhost -d Pravia -U pravia_app -P "MOT_DE_PASSE" `
+  -i dist-sql\pravia-translations.sql
+
+# 4. Publication
+cd deploy
+.\2-installer-iis.ps1 -Source ..\dist-iis -Destination C:\inetpub\pravia
+```
+
+La migration se termine par deux `SELECT` de contrôle : vous devez voir les
+quatre tables `…Translation` et les trois réglages `banner.text.*`.
+
+Rien d'autre n'est à faire : les adresses passent de `/produits` à
+`/fr/produits`, et l'ancienne forme redirige d'elle-même vers la langue du
+visiteur. Aucune redirection à écrire dans IIS.
+
+Si le schéma de données a changé pour une autre raison, calculez l'écart et
+relisez-le avant de l'appliquer — `migrate diff` peut proposer des
+suppressions de colonnes :
 
 ```powershell
 npx prisma migrate diff `
@@ -361,11 +402,13 @@ Get-EventLog -LogName Application -Source "IIS*" -Newest 20
 
 Sur **SQL Server 2025 Express**, avec les scripts de ce dépôt :
 
-- création des 16 tables, 14 clés étrangères et 43 index, sans aucun
-  avertissement ;
-- import des 594 lignes de démonstration ;
+- création des tables, clés étrangères et index, sans aucun avertissement ;
+- import des lignes de démonstration ;
 - conservation des accents, des apostrophes, des montants en centimes et des
   dates.
+
+Les colonnes de traduction sont en `NVARCHAR` et les valeurs insérées portent
+le préfixe `N'…'` : l'arabe est stocké et relu sans perte.
 
 Sur le paquet `dist-iis` réellement produit :
 
@@ -383,6 +426,55 @@ le script s'arrête en l'indiquant.
 Une fois le site en ligne, vous pouvez rejouer les deux suites depuis le clone :
 
 ```powershell
-npm run e2e -- https://pravia.my-officeapps.com
-npm run seo -- https://pravia.my-officeapps.com
+npm run e2e -- https://pravia.my-officeapps.com          # 35 vérifications
+npm run seo -- https://pravia.my-officeapps.com          # 38 vérifications
+npm run responsive -- https://pravia.my-officeapps.com   # 72 combinaisons
+npm run i18n:check                                       # cohérence des catalogues
 ```
+
+---
+
+## Langues
+
+Le site sert trois langues, toutes préfixées dans l'URL :
+
+| Langue | Préfixe | Sens de lecture |
+| --- | --- | --- |
+| Français | `/fr` | gauche à droite |
+| Anglais | `/en` | gauche à droite |
+| Arabe | `/ar` | **droite à gauche** |
+
+- L'interface vit dans `messages/fr.json`, `en.json` et `ar.json`
+  (975 clés chacun). `npm run i18n:check` vérifie qu'aucune clé ne manque et
+  que les pluriels arabes couvrent bien leurs six formes.
+- Le **contenu** (fiches produit, catégories, caractéristiques) est traduit en
+  base, dans les tables `…Translation`. Un champ vide retombe silencieusement
+  sur la version française : une fiche à moitié traduite reste lisible.
+- Le back-office édite ces traductions dans un onglet par langue, sur le
+  formulaire produit et sur celui des catégories.
+- Le bandeau promotionnel se décline par langue depuis **Réglages**.
+
+Pour ajouter une langue : l'ajouter dans `src/i18n/routing.ts`, créer
+`messages/<code>.json`, puis relancer `npm run i18n:check`.
+
+---
+
+## Marque
+
+Les fichiers officiels sont dans `public/` :
+
+| Fichier | Usage |
+| --- | --- |
+| `logo.png` | verrou horizontal complet, avec les deux baselines |
+| `logo-compact.png` | symbole + PRAVIA, pour l'en-tête |
+| `logo-principal.png` | verrou carré empilé |
+| `logo-mark.png` | symbole seul |
+| `icon.png`, `icon-192.png`, `favicon-32.png` | icônes du navigateur et du manifeste |
+
+Le fond est transparent : la marque se pose telle quelle sur le thème clair
+comme sur le sombre. Pour changer de logo, il suffit de remplacer ces fichiers
+et de reconstruire — aucun code ne les nomme ailleurs que dans
+`src/components/logo.tsx`.
+
+La couleur primaire du site est celle du logo, définie une seule fois dans
+`src/app/globals.css` (`--primary`).

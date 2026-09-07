@@ -1,6 +1,7 @@
 import "server-only";
 import type { Metadata } from "next";
 import { db } from "./db";
+import { routing, localePath, LOCALE_TAGS, type Locale } from "@/i18n/routing";
 
 /**
  * Reglages de referencement, editables depuis le back-office.
@@ -63,6 +64,29 @@ export function absoluteUrl(siteUrl: string, path: string): string {
   return `${siteUrl.replace(/\/+$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+// Le prefixage par la langue vit dans le routage : il n'a rien de specifique
+// au referencement et sert aussi aux redirections.
+export { localePath };
+
+/**
+ * Declare aux moteurs les versions equivalentes d'une meme page.
+ *
+ * x-default designe la version proposee a un visiteur dont la langue n'est
+ * couverte par aucune traduction.
+ */
+export function localeAlternates(siteUrl: string, path: string, current: Locale) {
+  const languages: Record<string, string> = {};
+  for (const locale of routing.locales) {
+    languages[LOCALE_TAGS[locale]] = absoluteUrl(siteUrl, localePath(locale, path));
+  }
+  languages["x-default"] = absoluteUrl(siteUrl, localePath(routing.defaultLocale, path));
+
+  return {
+    canonical: absoluteUrl(siteUrl, localePath(current, path)),
+    languages,
+  };
+}
+
 /** Coupe proprement une description a la limite conseillee, sans casser un mot. */
 export function truncateDescription(input: string, max = 158): string {
   const clean = input.replace(/\s+/g, " ").trim();
@@ -78,6 +102,7 @@ type BuildMetadataInput = {
   path: string;
   image?: string | null;
   noIndex?: boolean;
+  locale: Locale;
   type?: "website" | "article";
   /** Le titre est utilise tel quel, sans le gabarit du layout. */
   absoluteTitle?: boolean;
@@ -97,7 +122,8 @@ export async function buildMetadata(input: BuildMetadataInput): Promise<Metadata
   const siteUrl = settings["seo.siteUrl"].replace(/\/+$/, "");
   const indexable = settings["seo.indexable"] === "1" && !input.noIndex;
 
-  const canonical = absoluteUrl(siteUrl, input.path);
+  const alternates = localeAlternates(siteUrl, input.path, input.locale);
+  const canonical = alternates.canonical;
   const description = truncateDescription(input.description);
 
   // L'image du segment n'est injectee que si la page n'en declare pas ; le
@@ -105,13 +131,13 @@ export async function buildMetadata(input: BuildMetadataInput): Promise<Metadata
   // explicitement partout sauf la ou un visuel dedie existe.
   const explicitImage = input.useSegmentImage
     ? input.image || null
-    : input.image || settings["seo.defaultOgImage"] || "/opengraph-image";
+    : input.image || settings["seo.defaultOgImage"] || localePath(input.locale, "/opengraph-image");
   const imageUrl = explicitImage ? absoluteUrl(siteUrl, explicitImage) : null;
 
   return {
     title: input.absoluteTitle ? { absolute: input.title } : input.title,
     description,
-    alternates: { canonical },
+    alternates,
     robots: indexable
       ? { index: true, follow: true, googleBot: { index: true, follow: true } }
       : { index: false, follow: false },
@@ -120,7 +146,10 @@ export async function buildMetadata(input: BuildMetadataInput): Promise<Metadata
       description,
       url: canonical,
       siteName: settings["seo.siteName"],
-      locale: "fr_FR",
+      locale: LOCALE_TAGS[input.locale].replace("-", "_"),
+      alternateLocale: routing.locales
+        .filter((l) => l !== input.locale)
+        .map((l) => LOCALE_TAGS[l].replace("-", "_")),
       type: input.type ?? "website",
       ...(imageUrl ? { images: [{ url: imageUrl, width: 1200, height: 630, alt: input.title }] } : {}),
     },
@@ -136,17 +165,30 @@ export async function buildMetadata(input: BuildMetadataInput): Promise<Metadata
   };
 }
 
-/** Metadonnees d'une page editoriale, surchargees par le back-office si presentes. */
+/**
+ * Metadonnees d'une page editoriale, surchargees par le back-office si presentes.
+ *
+ * Les surcharges sont enregistrees par langue : une page a donc un titre propre
+ * a chaque version, et retombe sur le libelle traduit a defaut.
+ */
 export async function buildPageMetadata(
   path: string,
+  locale: Locale,
   fallback: { title: string; description: string }
 ): Promise<Metadata> {
-  const page = await db.seoPage.findUnique({ where: { path } });
+  const page = await db.seoPage.findUnique({
+    where: { path },
+    include: { translations: { where: { locale } } },
+  });
+
+  const translation = page?.translations[0];
 
   return buildMetadata({
-    title: page?.metaTitle?.trim() || fallback.title,
-    description: page?.metaDescription?.trim() || fallback.description,
+    title: translation?.metaTitle?.trim() || page?.metaTitle?.trim() || fallback.title,
+    description:
+      translation?.metaDescription?.trim() || page?.metaDescription?.trim() || fallback.description,
     path,
+    locale,
     image: page?.ogImage,
     noIndex: page?.noIndex,
   });
@@ -170,7 +212,7 @@ export async function organizationSchema() {
     name: settings["seo.siteName"],
     legalName: settings["seo.organizationLegalName"],
     url: siteUrl,
-    logo: absoluteUrl(siteUrl, "/favicon.svg"),
+    logo: absoluteUrl(siteUrl, "/icon.png"),
     description: settings["seo.defaultDescription"],
     ...(settings["seo.organizationAddress"]
       ? {
@@ -183,32 +225,37 @@ export async function organizationSchema() {
   };
 }
 
-/** Declare le moteur de recherche interne aux robots. */
-export async function websiteSchema() {
+/** Declare le moteur de recherche interne aux robots, dans la langue courante. */
+export async function websiteSchema(locale: Locale) {
   const settings = await getSeoSettings();
   const siteUrl = settings["seo.siteUrl"].replace(/\/+$/, "");
+  const base = absoluteUrl(siteUrl, localePath(locale, "/"));
 
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "@id": `${siteUrl}/#website`,
-    url: siteUrl,
+    "@id": `${base}#website`,
+    url: base,
     name: settings["seo.siteName"],
     description: settings["seo.defaultDescription"],
-    inLanguage: "fr-FR",
+    inLanguage: LOCALE_TAGS[locale],
     publisher: { "@id": `${siteUrl}/#organization` },
     potentialAction: {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: `${siteUrl}/produits?q={search_term_string}`,
+        urlTemplate: `${absoluteUrl(siteUrl, localePath(locale, "/produits"))}?q={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
     },
   };
 }
 
-export function breadcrumbSchema(siteUrl: string, trail: { name: string; path: string }[]) {
+export function breadcrumbSchema(
+  siteUrl: string,
+  locale: Locale,
+  trail: { name: string; path: string }[]
+) {
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -216,13 +263,14 @@ export function breadcrumbSchema(siteUrl: string, trail: { name: string; path: s
       "@type": "ListItem",
       position: index + 1,
       name: step.name,
-      item: absoluteUrl(siteUrl, step.path),
+      item: absoluteUrl(siteUrl, localePath(locale, step.path)),
     })),
   };
 }
 
 type ProductSchemaInput = {
   siteUrl: string;
+  locale: Locale;
   product: {
     slug: string;
     title: string;
@@ -256,12 +304,13 @@ const SCHEMA_CONDITIONS: Record<string, string> = {
 
 export function productSchema({
   siteUrl,
+  locale,
   product,
   rating,
   reviewCount,
   reviews,
 }: ProductSchemaInput) {
-  const url = absoluteUrl(siteUrl, `/produits/${product.slug}`);
+  const url = absoluteUrl(siteUrl, localePath(locale, `/produits/${product.slug}`));
 
   // La garantie court a partir de l'achat : un an de validite d'offre suffit.
   const priceValidUntil = new Date();
@@ -327,6 +376,7 @@ export function productSchema({
 
 export function itemListSchema(
   siteUrl: string,
+  locale: Locale,
   products: { slug: string; title: string; price: number }[]
 ) {
   return {
@@ -336,7 +386,7 @@ export function itemListSchema(
     itemListElement: products.map((product, index) => ({
       "@type": "ListItem",
       position: index + 1,
-      url: absoluteUrl(siteUrl, `/produits/${product.slug}`),
+      url: absoluteUrl(siteUrl, localePath(locale, `/produits/${product.slug}`)),
       name: product.title,
     })),
   };

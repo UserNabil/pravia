@@ -1,10 +1,13 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Check, Loader2, Pencil, X } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Loader2, Pencil, X } from "lucide-react";
 import type { AdminState } from "@/app/actions/admin";
 import { CATEGORY_ICON_NAMES, CategoryIcon } from "@/components/category-icon";
 import { cn } from "@/lib/format";
+import { FormFeedback } from "./form-feedback";
+import { TranslationFields, type TranslationValues } from "./translation-fields";
 
 type Editable = {
   id: string;
@@ -16,6 +19,7 @@ type Editable = {
   metaTitle?: string | null;
   metaDescription?: string | null;
   noIndex?: boolean;
+  translations?: TranslationValues;
 };
 
 /** Formulaire de creation / edition partage par les categories et les marques. */
@@ -30,6 +34,7 @@ export function TaxonomyForm({
   editing: Editable | null;
   onCancel?: () => void;
 }) {
+  const t = useTranslations("admin.taxonomy");
   const [state, formAction, pending] = useActionState(action, {});
   const [icon, setIcon] = useState(editing?.icon ?? "package");
   const [accent, setAccent] = useState(editing?.accent ?? "#64748b");
@@ -38,12 +43,12 @@ export function TaxonomyForm({
     <form action={formAction} className="surface-card space-y-4 p-5">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold">
-          {editing ? "Modifier" : kind === "category" ? "Nouvelle categorie" : "Nouvelle marque"}
+          {editing ? t("edit") : kind === "category" ? t("newCategory") : t("newBrand")}
         </h2>
         {editing && onCancel && (
           <button type="button" onClick={onCancel} className="btn btn-ghost px-2 py-1 text-xs">
             <X className="size-3.5" />
-            Annuler
+            {t("cancel")}
           </button>
         )}
       </div>
@@ -52,7 +57,7 @@ export function TaxonomyForm({
 
       <div>
         <label htmlFor="name" className="label">
-          Nom <span className="text-danger">*</span>
+          {t("name")} <span className="text-danger">*</span>
         </label>
         <input
           id="name"
@@ -61,7 +66,9 @@ export function TaxonomyForm({
           key={editing?.id ?? "new"}
           required
           className="input"
-          placeholder={kind === "category" ? "Smartphones" : "Apple"}
+          placeholder={
+            kind === "category" ? t("categoryNamePlaceholder") : t("brandNamePlaceholder")
+          }
         />
       </div>
 
@@ -69,7 +76,7 @@ export function TaxonomyForm({
         <>
           <div>
             <label htmlFor="description" className="label">
-              Description
+              {t("description")}
             </label>
             <textarea
               id="description"
@@ -77,12 +84,12 @@ export function TaxonomyForm({
               defaultValue={editing?.description ?? ""}
               rows={2}
               className="input resize-y"
-              placeholder="Affichee sur la page de la categorie."
+              placeholder={t("descriptionPlaceholder")}
             />
           </div>
 
           <div>
-            <span className="label">Icone</span>
+            <span className="label">{t("icon")}</span>
             <input type="hidden" name="icon" value={icon} />
             <div className="grid grid-cols-5 gap-1.5">
               {CATEGORY_ICON_NAMES.map((name) => (
@@ -107,7 +114,7 @@ export function TaxonomyForm({
 
           <div>
             <label htmlFor="sortOrder" className="label">
-              Ordre d&apos;affichage
+              {t("sortOrder")}
             </label>
             <input
               id="sortOrder"
@@ -120,26 +127,26 @@ export function TaxonomyForm({
 
           <div className="border-t border-border pt-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-2">
-              Referencement
+              {t("seo")}
             </p>
 
             <div className="mt-3 space-y-3">
               <div>
                 <label htmlFor="metaTitle" className="label">
-                  Titre SEO
+                  {t("metaTitle")}
                 </label>
                 <input
                   id="metaTitle"
                   name="metaTitle"
                   defaultValue={editing?.metaTitle ?? ""}
                   className="input"
-                  placeholder="Laisser vide pour un titre genere"
+                  placeholder={t("metaTitlePlaceholder")}
                 />
               </div>
 
               <div>
                 <label htmlFor="metaDescription" className="label">
-                  Meta description
+                  {t("metaDescription")}
                 </label>
                 <textarea
                   id="metaDescription"
@@ -147,7 +154,7 @@ export function TaxonomyForm({
                   defaultValue={editing?.metaDescription ?? ""}
                   rows={3}
                   className="input resize-y"
-                  placeholder="Resume affiche dans les resultats de recherche"
+                  placeholder={t("metaDescriptionPlaceholder")}
                 />
               </div>
 
@@ -158,15 +165,26 @@ export function TaxonomyForm({
                   defaultChecked={editing?.noIndex ?? false}
                   className="size-4 rounded border-border accent-[var(--primary)]"
                 />
-                Exclure des moteurs de recherche
+                {t("noIndex")}
               </label>
             </div>
           </div>
+
+          <TranslationFields
+            namespace="admin.taxonomy"
+            values={editing?.translations ?? {}}
+            fields={[
+              { name: "name", label: t("name") },
+              { name: "description", label: t("description"), rows: 2 },
+              { name: "metaTitle", label: t("metaTitle") },
+              { name: "metaDescription", label: t("metaDescription"), rows: 3 },
+            ]}
+          />
         </>
       ) : (
         <div>
           <label htmlFor="accent" className="label">
-            Couleur d&apos;accent
+            {t("accent")}
           </label>
           <div className="flex items-center gap-2.5">
             <input
@@ -182,17 +200,11 @@ export function TaxonomyForm({
         </div>
       )}
 
-      {state.error && <p className="rounded-lg bg-danger/10 p-2.5 text-xs text-danger">{state.error}</p>}
-      {state.success && (
-        <p className="flex items-center gap-1.5 rounded-lg bg-success/10 p-2.5 text-xs text-success">
-          <Check className="size-3.5" />
-          {state.success}
-        </p>
-      )}
+      <FormFeedback state={state} size="xs" />
 
       <button type="submit" disabled={pending} className="btn btn-primary w-full">
         {pending && <Loader2 className="size-4 animate-spin" />}
-        {editing ? "Enregistrer" : "Creer"}
+        {editing ? t("save") : t("create")}
       </button>
     </form>
   );
@@ -200,11 +212,13 @@ export function TaxonomyForm({
 
 /** Bouton d'edition : remonte la ligne selectionnee au formulaire. */
 export function EditTrigger({ onSelect }: { onSelect: () => void }) {
+  const t = useTranslations("admin.taxonomy");
+
   return (
     <button
       type="button"
       onClick={onSelect}
-      aria-label="Modifier"
+      aria-label={t("edit")}
       className="flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-3 hover:text-foreground"
     >
       <Pencil className="size-3.5" />

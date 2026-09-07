@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
+import { usePathname } from "@/i18n/navigation";
 import { LayoutDashboard, LogOut, Menu, Package, User, X } from "lucide-react";
 import { CategoryIcon } from "./category-icon";
 import { ThemeToggle } from "./theme-toggle";
+import { LanguageSwitcher } from "./language-switcher";
 import { logoutAction } from "@/app/actions/auth";
 import type { SessionUser } from "@/lib/auth";
 
@@ -16,6 +18,8 @@ export function MobileNav({
   categories: { id: string; slug: string; name: string; icon: string }[];
   user: SessionUser | null;
 }) {
+  const t = useTranslations("nav");
+  const tAccount = useTranslations("account");
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -33,8 +37,8 @@ export function MobileNav({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Ouvrir le menu"
-        className="flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-foreground md:hidden"
+        aria-label={t("openMenu")}
+        className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-foreground lg:hidden"
       >
         <Menu className="size-5" />
       </button>
@@ -43,18 +47,18 @@ export function MobileNav({
         <div className="fixed inset-0 z-50 md:hidden">
           <button
             type="button"
-            aria-label="Fermer le menu"
+            aria-label={t("close") ?? ""}
             onClick={() => setOpen(false)}
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
           />
 
-          <div className="absolute inset-y-0 left-0 flex w-[min(20rem,85vw)] flex-col bg-background shadow-2xl">
+          <div className="absolute inset-y-0 start-0 flex w-[min(20rem,85vw)] flex-col bg-background shadow-2xl">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <span className="text-sm font-semibold">Navigation</span>
+              <span className="text-sm font-semibold">{t("navigation")}</span>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                aria-label="Fermer"
+                aria-label={tAccount("menu")}
                 className="flex size-8 items-center justify-center rounded-lg text-muted hover:bg-surface-2"
               >
                 <X className="size-4" />
@@ -63,7 +67,7 @@ export function MobileNav({
 
             <div className="flex-1 overflow-y-auto p-3">
               <p className="px-2 pb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-2">
-                Categories
+                {t("categories")}
               </p>
               <nav className="space-y-0.5">
                 {categories.map((category) => (
@@ -79,7 +83,7 @@ export function MobileNav({
               </nav>
 
               <p className="px-2 pb-1.5 pt-4 text-xs font-semibold uppercase tracking-wide text-muted-2">
-                Raccourcis
+                {t("shortcuts")}
               </p>
               <nav className="space-y-0.5">
                 <Link
@@ -87,7 +91,7 @@ export function MobileNav({
                   className="flex items-center gap-3 rounded-lg px-2 py-2.5 text-sm transition-colors hover:bg-surface-2"
                 >
                   <Package className="size-4 text-muted" />
-                  Tout le catalogue
+                  {t("allCatalogue")}
                 </Link>
                 {user && (
                   <>
@@ -96,7 +100,7 @@ export function MobileNav({
                       className="flex items-center gap-3 rounded-lg px-2 py-2.5 text-sm transition-colors hover:bg-surface-2"
                     >
                       <User className="size-4 text-muted" />
-                      Mon compte
+                      {tAccount("myAccount")}
                     </Link>
                     {user.role === "ADMIN" && (
                       <Link
@@ -104,7 +108,7 @@ export function MobileNav({
                         className="flex items-center gap-3 rounded-lg px-2 py-2.5 text-sm transition-colors hover:bg-surface-2"
                       >
                         <LayoutDashboard className="size-4 text-muted" />
-                        Back-office
+                        {t("backoffice")}
                       </Link>
                     )}
                   </>
@@ -114,24 +118,29 @@ export function MobileNav({
 
             <div className="space-y-3 border-t border-border p-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted">Theme</span>
+                <span className="text-xs font-medium text-muted">{t("theme")}</span>
                 <ThemeToggle />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted">{t("language")}</span>
+                <LanguageSwitcher />
               </div>
 
               {user ? (
                 <form action={logoutAction}>
                   <button type="submit" className="btn btn-secondary w-full">
                     <LogOut className="size-4" />
-                    Se deconnecter
+                    {tAccount("signOut")}
                   </button>
                 </form>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
                   <Link href="/connexion" className="btn btn-secondary">
-                    Connexion
+                    {tAccount("signIn")}
                   </Link>
                   <Link href="/inscription" className="btn btn-primary">
-                    Inscription
+                    {tAccount("signUpShort")}
                   </Link>
                 </div>
               )}

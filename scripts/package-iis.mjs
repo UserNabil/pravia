@@ -85,7 +85,13 @@ const required = [
   "web.config",
   "package.json",
   ".next/static",
-  "public/favicon.svg",
+  "public/favicon-32.png",
+  "public/icon.png",
+  "public/icon-192.png",
+  "public/logo.png",
+  "public/logo-compact.png",
+  "public/logo-principal.png",
+  "public/logo-mark.png",
   "node_modules/next",
 ];
 

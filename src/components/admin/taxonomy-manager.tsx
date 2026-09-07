@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Trash2 } from "lucide-react";
 import type { AdminState } from "@/app/actions/admin";
 import { EmptyRow, TableShell, Td, Th } from "./ui";
 import { ConfirmButton } from "./actions-ui";
 import { EditTrigger, TaxonomyForm } from "./taxonomy-form";
+import type { TranslationValues } from "./translation-fields";
 import { CategoryIcon } from "@/components/category-icon";
 
 export type TaxonomyRow = {
@@ -21,6 +23,7 @@ export type TaxonomyRow = {
   metaDescription?: string | null;
   noIndex?: boolean;
   productCount: number;
+  translations?: TranslationValues;
 };
 
 export function TaxonomyManager({
@@ -34,6 +37,7 @@ export function TaxonomyManager({
   saveAction: (prev: AdminState, formData: FormData) => Promise<AdminState>;
   deleteAction: (id: string) => Promise<void>;
 }) {
+  const t = useTranslations("admin.taxonomy");
   const [editing, setEditing] = useState<TaxonomyRow | null>(null);
 
   return (
@@ -42,14 +46,14 @@ export function TaxonomyManager({
         <TableShell>
           <thead>
             <tr>
-              <Th>{kind === "category" ? "Categorie" : "Marque"}</Th>
-              <Th>Identifiant</Th>
-              <Th>Produits</Th>
-              <Th className="text-right">Actions</Th>
+              <Th>{kind === "category" ? t("colCategory") : t("colBrand")}</Th>
+              <Th>{t("colSlug")}</Th>
+              <Th>{t("colProducts")}</Th>
+              <Th className="text-end">{t("colActions")}</Th>
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && <EmptyRow colSpan={4}>Aucune entree pour le moment.</EmptyRow>}
+            {rows.length === 0 && <EmptyRow colSpan={4}>{t("empty")}</EmptyRow>}
 
             {rows.map((row) => (
               <tr key={row.id} className="transition-colors hover:bg-surface-2">
@@ -86,21 +90,21 @@ export function TaxonomyManager({
                     {row.productCount}
                   </Link>
                 </Td>
-                <Td className="text-right">
+                <Td className="text-end">
                   <div className="flex items-center justify-end gap-1">
                     <EditTrigger onSelect={() => setEditing(row)} />
                     {row.productCount === 0 ? (
                       <ConfirmButton
                         action={() => deleteAction(row.id)}
-                        confirmLabel="Supprimer"
-                        successMessage="Entree supprimee."
+                        confirmLabel={t("confirmDelete")}
+                        successMessage={t("deleted")}
                         className="flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-danger/10 hover:text-danger"
                       >
                         <Trash2 className="size-3.5" />
                       </ConfirmButton>
                     ) : (
                       <span
-                        title="Suppression impossible : des produits y sont rattaches"
+                        title={t("deleteBlocked")}
                         className="flex size-8 cursor-not-allowed items-center justify-center rounded-lg text-muted-2 opacity-40"
                       >
                         <Trash2 className="size-3.5" />

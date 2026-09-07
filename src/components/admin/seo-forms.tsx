@@ -1,9 +1,11 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { AlertTriangle, Check, Globe, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { AlertTriangle, Globe, Loader2 } from "lucide-react";
 import type { AdminState } from "@/app/actions/admin";
 import { cn } from "@/lib/format";
+import { FormFeedback } from "./form-feedback";
 
 /* --------------------------------------------------------- reglages globaux */
 
@@ -16,6 +18,7 @@ export function SeoSettingsForm({
   values: Record<string, string>;
   indexable: boolean;
 }) {
+  const t = useTranslations("admin.seo");
   const [state, formAction, pending] = useActionState(action, {});
   const [open, setOpen] = useState(indexable);
 
@@ -25,35 +28,33 @@ export function SeoSettingsForm({
         <section className="surface-card p-5">
           <h2 className="flex items-center gap-2 text-sm font-bold">
             <Globe className="size-4 text-muted" />
-            Identite du site
+            {t("identity")}
           </h2>
-          <p className="mt-1 text-xs text-muted-2">
-            Ces valeurs alimentent les balises de chaque page, le sitemap et les partages sociaux.
-          </p>
+          <p className="mt-1 text-xs text-muted-2">{t("identityHint")}</p>
 
           <div className="mt-4 space-y-4">
             <Field
-              label="Adresse du site"
+              label={t("siteUrl")}
               name="seo.siteUrl"
               defaultValue={values["seo.siteUrl"]}
               placeholder="https://pravia.com"
-              hint="Sert de base aux URL canoniques et au sitemap. Sans elle, rien n'est indexable correctement."
+              hint={t("siteUrlHint")}
             />
-            <Field label="Nom du site" name="seo.siteName" defaultValue={values["seo.siteName"]} />
+            <Field label={t("siteName")} name="seo.siteName" defaultValue={values["seo.siteName"]} />
             <Field
-              label="Gabarit de titre"
+              label={t("titleTemplate")}
               name="seo.titleTemplate"
               defaultValue={values["seo.titleTemplate"]}
-              hint="%s est remplace par le titre de la page."
+              hint={t("titleTemplateHint")}
             />
             <Counted
-              label="Titre par defaut"
+              label={t("defaultTitle")}
               name="seo.defaultTitle"
               defaultValue={values["seo.defaultTitle"]}
               max={60}
             />
             <Counted
-              label="Description par defaut"
+              label={t("defaultDescription")}
               name="seo.defaultDescription"
               defaultValue={values["seo.defaultDescription"]}
               max={158}
@@ -63,18 +64,16 @@ export function SeoSettingsForm({
         </section>
 
         <section className="surface-card p-5">
-          <h2 className="text-sm font-bold">Organisation</h2>
-          <p className="mt-1 text-xs text-muted-2">
-            Utilise dans les donnees structurees Organization lues par les moteurs.
-          </p>
+          <h2 className="text-sm font-bold">{t("organization")}</h2>
+          <p className="mt-1 text-xs text-muted-2">{t("organizationHint")}</p>
           <div className="mt-4 space-y-4">
             <Field
-              label="Raison sociale"
+              label={t("legalName")}
               name="seo.organizationLegalName"
               defaultValue={values["seo.organizationLegalName"]}
             />
             <Field
-              label="Localisation"
+              label={t("address")}
               name="seo.organizationAddress"
               defaultValue={values["seo.organizationAddress"]}
               placeholder="Paris, France"
@@ -90,7 +89,7 @@ export function SeoSettingsForm({
             !open && "border-warning/40 bg-warning/5"
           )}
         >
-          <h2 className="text-sm font-bold">Indexation</h2>
+          <h2 className="text-sm font-bold">{t("indexing")}</h2>
 
           <label className="mt-4 flex cursor-pointer items-start gap-3">
             <input
@@ -101,36 +100,31 @@ export function SeoSettingsForm({
               className="mt-0.5 size-4 rounded border-border accent-[var(--primary)]"
             />
             <span>
-              <span className="block text-sm font-medium">
-                Autoriser les moteurs a indexer le site
-              </span>
-              <span className="mt-0.5 block text-xs text-muted-2">
-                Decochez pendant la recette : robots.txt bloquera tout et le sitemap sera vide.
-              </span>
+              <span className="block text-sm font-medium">{t("allowIndexing")}</span>
+              <span className="mt-0.5 block text-xs text-muted-2">{t("allowIndexingHint")}</span>
             </span>
           </label>
 
           {!open && (
             <p className="mt-3 flex items-start gap-2 rounded-lg bg-warning/10 p-2.5 text-xs text-warning">
               <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-              Le site sera invisible dans les resultats de recherche tant que cette case reste
-              decochee.
+              {t("indexingWarning")}
             </p>
           )}
         </section>
 
         <section className="surface-card p-5">
-          <h2 className="text-sm font-bold">Partage social</h2>
+          <h2 className="text-sm font-bold">{t("social")}</h2>
           <div className="mt-4 space-y-4">
             <Field
-              label="Image sociale par defaut"
+              label={t("defaultOgImage")}
               name="seo.defaultOgImage"
               defaultValue={values["seo.defaultOgImage"]}
               placeholder="/opengraph-image"
-              hint="Laisser vide pour utiliser l'image generee automatiquement (1200x630)."
+              hint={t("defaultOgImageHint")}
             />
             <Field
-              label="Compte X / Twitter"
+              label={t("twitterHandle")}
               name="seo.twitterHandle"
               defaultValue={values["seo.twitterHandle"]}
               placeholder="@pravia"
@@ -139,36 +133,28 @@ export function SeoSettingsForm({
         </section>
 
         <section className="surface-card p-5">
-          <h2 className="text-sm font-bold">Verification de propriete</h2>
-          <p className="mt-1 text-xs text-muted-2">
-            Collez ici le code fourni par chaque outil pour valider le site.
-          </p>
+          <h2 className="text-sm font-bold">{t("verification")}</h2>
+          <p className="mt-1 text-xs text-muted-2">{t("verificationHint")}</p>
           <div className="mt-4 space-y-4">
             <Field
-              label="Google Search Console"
+              label={t("google")}
               name="seo.googleVerification"
               defaultValue={values["seo.googleVerification"]}
               placeholder="google-site-verification"
             />
             <Field
-              label="Bing Webmaster Tools"
+              label={t("bing")}
               name="seo.bingVerification"
               defaultValue={values["seo.bingVerification"]}
             />
           </div>
         </section>
 
-        {state.error && <p className="rounded-lg bg-danger/10 p-3 text-sm text-danger">{state.error}</p>}
-        {state.success && (
-          <p className="flex items-center gap-2 rounded-lg bg-success/10 p-3 text-sm text-success">
-            <Check className="size-4 shrink-0" />
-            {state.success}
-          </p>
-        )}
+        <FormFeedback state={state} size="sm" />
 
         <button type="submit" disabled={pending} className="btn btn-primary w-full py-2.5">
           {pending && <Loader2 className="size-4 animate-spin" />}
-          Enregistrer le referencement
+          {t("submit")}
         </button>
       </div>
     </form>
@@ -198,6 +184,7 @@ export function SeoPageForm({
   action: (prev: AdminState, formData: FormData) => Promise<AdminState>;
   page: SeoPageRow;
 }) {
+  const t = useTranslations("admin.seo");
   const [state, formAction, pending] = useActionState(action, {});
 
   return (
@@ -212,26 +199,26 @@ export function SeoPageForm({
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Counted
-          label="Titre"
+          label={t("pageTitle")}
           name="metaTitle"
           defaultValue={page.metaTitle}
           max={60}
-          placeholder="Laisser vide pour le titre par defaut"
+          placeholder={t("pageTitlePlaceholder")}
         />
         <Counted
-          label="Description"
+          label={t("pageDescription")}
           name="metaDescription"
           defaultValue={page.metaDescription}
           max={158}
           textarea
-          placeholder="Laisser vide pour la description par defaut"
+          placeholder={t("pageDescriptionPlaceholder")}
         />
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
         <div>
           <label htmlFor={`freq-${page.path}`} className="label">
-            Frequence de mise a jour
+            {t("changeFrequency")}
           </label>
           <select
             id={`freq-${page.path}`}
@@ -249,7 +236,7 @@ export function SeoPageForm({
 
         <div>
           <label htmlFor={`prio-${page.path}`} className="label">
-            Priorite (0 a 1)
+            {t("priority")}
           </label>
           <input
             id={`prio-${page.path}`}
@@ -271,7 +258,7 @@ export function SeoPageForm({
               defaultChecked={page.inSitemap}
               className="size-4 rounded border-border accent-[var(--primary)]"
             />
-            Dans le sitemap
+            {t("inSitemap")}
           </label>
           <label className="flex cursor-pointer items-center gap-2 text-sm">
             <input
@@ -280,7 +267,7 @@ export function SeoPageForm({
               defaultChecked={page.noIndex}
               className="size-4 rounded border-border accent-[var(--primary)]"
             />
-            Exclure de l&apos;index
+            {t("noIndex")}
           </label>
         </div>
       </div>
@@ -288,15 +275,9 @@ export function SeoPageForm({
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button type="submit" disabled={pending} className="btn btn-primary">
           {pending && <Loader2 className="size-4 animate-spin" />}
-          Enregistrer
+          {t("save")}
         </button>
-        {state.error && <span className="text-sm text-danger">{state.error}</span>}
-        {state.success && (
-          <span className="flex items-center gap-1.5 text-sm text-success">
-            <Check className="size-3.5" />
-            {state.success}
-          </span>
-        )}
+        <FormFeedback state={state} size="xs" />
       </div>
     </form>
   );
@@ -367,7 +348,7 @@ function Counted({
         <label htmlFor={name} className="label">
           {label}
         </label>
-        <span className={cn("text-xs tabular-nums", tone)}>
+        <span className={cn("text-xs tabular-nums", tone)} dir="ltr">
           {length} / {max}
         </span>
       </div>

@@ -3,6 +3,7 @@ import { assertNonce, callbackUrl, exchangeCode, getProvider, isProviderId } fro
 import { consumeFlow, holdPending } from "@/lib/oauth-state";
 import { signInWithProfile } from "@/lib/oauth-link";
 import { getSiteUrl } from "@/lib/seo";
+import { localeFromRequest, withLocale } from "@/lib/redirect";
 
 export const dynamic = "force-dynamic";
 
@@ -41,30 +42,32 @@ async function fromForm(request: Request): Promise<CallbackParams> {
   };
 }
 
-function failure(request: Request, reason: string) {
-  const url = new URL("/connexion", request.url);
+async function failure(request: Request, reason: string) {
+  const locale = await localeFromRequest(request);
+  const url = new URL(withLocale(locale, "/connexion"), request.url);
   url.searchParams.set("erreur", reason);
   return NextResponse.redirect(url);
 }
 
 async function handle(request: Request, id: string, params: CallbackParams) {
-  if (!isProviderId(id)) return failure(request, "fournisseur-inconnu");
+  if (!isProviderId(id)) return await failure(request, "fournisseur-inconnu");
 
   // L'internaute a refuse l'autorisation, ou le fournisseur a refuse la demande.
   if (params.error) {
     console.warn(`[oauth] ${id} a refuse : ${params.error} ${params.errorDescription ?? ""}`);
-    return failure(request, params.error === "access_denied" ? "annule" : "refus-fournisseur");
+    return await failure(request, params.error === "access_denied" ? "annule" : "refus-fournisseur");
   }
 
   const flow = await consumeFlow();
-  if (!flow) return failure(request, "session-expiree");
-  if (flow.provider !== id) return failure(request, "etat-invalide");
+  if (!flow) return await failure(request, "session-expiree");
+  if (flow.provider !== id) return await failure(request, "etat-invalide");
   // Comparaison du state : protege contre une requete forgee par un tiers.
-  if (!params.state || params.state !== flow.state) return failure(request, "etat-invalide");
-  if (!params.code) return failure(request, "code-absent");
+  if (!params.state || params.state !== flow.state) return await failure(request, "etat-invalide");
+  if (!params.code) return await failure(request, "code-absent");
 
   const provider = getProvider(id);
   const siteUrl = await getSiteUrl();
+  const locale = await localeFromRequest(request);
 
   try {
     const tokens = await exchangeCode(provider, {
@@ -81,15 +84,17 @@ async function handle(request: Request, id: string, params: CallbackParams) {
     if (outcome.status === "needs-email") {
       const secure = new URL(siteUrl).protocol === "https:";
       await holdPending({ provider: id, profile, redirectTo: flow.redirectTo }, secure);
-      return NextResponse.redirect(new URL("/connexion/finaliser", request.url));
+      return NextResponse.redirect(
+        new URL(withLocale(locale, "/connexion/finaliser"), request.url)
+      );
     }
 
-    return NextResponse.redirect(new URL(flow.redirectTo, request.url));
+    return NextResponse.redirect(new URL(withLocale(locale, flow.redirectTo), request.url));
   } catch (error) {
     // Le detail part dans les journaux du serveur ; l'internaute ne voit
     // qu'un message generique, sans indice exploitable.
     console.error(`[oauth] echec ${id} :`, error);
-    return failure(request, "echec-fournisseur");
+    return await failure(request, "echec-fournisseur");
   }
 }
 

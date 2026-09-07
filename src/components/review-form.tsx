@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Loader2, Star } from "lucide-react";
 import { submitReviewAction } from "@/app/actions/orders";
 import { cn } from "@/lib/format";
@@ -17,6 +18,9 @@ export function ReviewForm({
   productSlug: string;
   existingReview: { rating: number; title: string; body: string; status: string } | null;
 }) {
+  const t = useTranslations("reviews");
+  const tAccount = useTranslations("account");
+  const tErrors = useTranslations("formErrors");
   const [state, action, pending] = useActionState(submitReviewAction, {});
   const [rating, setRating] = useState(existingReview?.rating ?? 5);
   const [hover, setHover] = useState(0);
@@ -24,12 +28,12 @@ export function ReviewForm({
   if (!isAuthenticated) {
     return (
       <div className="surface-card p-5 text-center">
-        <p className="text-sm text-muted">Connectez-vous pour partager votre avis sur ce produit.</p>
+        <p className="text-sm text-muted">{t("signInPrompt")}</p>
         <Link
           href={`/connexion?redirectTo=/produits/${productSlug}`}
           className="btn btn-primary mt-3"
         >
-          Se connecter
+          {tAccount("signIn")}
         </Link>
       </div>
     );
@@ -38,11 +42,9 @@ export function ReviewForm({
   return (
     <form action={action} className="surface-card space-y-4 p-5">
       <div>
-        <h3 className="text-sm font-bold">
-          {existingReview ? "Modifier votre avis" : "Laisser un avis"}
-        </h3>
+        <h3 className="text-sm font-bold">{existingReview ? t("editReview") : t("leaveReview")}</h3>
         {existingReview?.status === "PENDING" && (
-          <p className="mt-1 text-xs text-warning">Votre avis est en cours de moderation.</p>
+          <p className="mt-1 text-xs text-warning">{t("moderation")}</p>
         )}
       </div>
 
@@ -50,7 +52,7 @@ export function ReviewForm({
       <input type="hidden" name="rating" value={rating} />
 
       <div>
-        <span className="label">Votre note</span>
+        <span className="label">{t("yourRating")}</span>
         <div className="flex items-center gap-1" onMouseLeave={() => setHover(0)}>
           {[1, 2, 3, 4, 5].map((value) => (
             <button
@@ -58,7 +60,7 @@ export function ReviewForm({
               type="button"
               onClick={() => setRating(value)}
               onMouseEnter={() => setHover(value)}
-              aria-label={`${value} etoile${value > 1 ? "s" : ""}`}
+              aria-label={t("stars", { count: value })}
               className="p-0.5"
             >
               <Star
@@ -76,7 +78,7 @@ export function ReviewForm({
 
       <div>
         <label htmlFor="review-title" className="label">
-          Titre
+          {t("reviewTitle")}
         </label>
         <input
           id="review-title"
@@ -84,14 +86,14 @@ export function ReviewForm({
           defaultValue={existingReview?.title}
           required
           maxLength={80}
-          placeholder="Resumez votre experience"
+          placeholder={t("titlePlaceholder")}
           className="input"
         />
       </div>
 
       <div>
         <label htmlFor="review-body" className="label">
-          Votre avis
+          {t("yourReview")}
         </label>
         <textarea
           id="review-body"
@@ -100,17 +102,17 @@ export function ReviewForm({
           required
           rows={4}
           maxLength={1200}
-          placeholder="Qu'avez-vous pense du produit, de la livraison, du rapport qualite-prix ?"
+          placeholder={t("bodyPlaceholder")}
           className="input resize-y"
         />
       </div>
 
-      {state.error && <p className="text-sm text-danger">{state.error}</p>}
-      {state.success && <p className="text-sm text-success">{state.success}</p>}
+      {state.errorKey && <p className="text-sm text-danger">{tErrors(state.errorKey)}</p>}
+      {state.submitted && <p className="text-sm text-success">{t("submitted")}</p>}
 
       <button type="submit" disabled={pending} className="btn btn-primary">
         {pending && <Loader2 className="size-4 animate-spin" />}
-        {existingReview ? "Mettre a jour" : "Publier mon avis"}
+        {existingReview ? t("update") : t("publish")}
       </button>
     </form>
   );

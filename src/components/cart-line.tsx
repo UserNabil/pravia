@@ -1,9 +1,10 @@
 "use client";
 
 import { useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Loader2, Minus, Plus, Trash2 } from "lucide-react";
 import { removeCartItemAction, updateCartItemAction } from "@/app/actions/cart";
 import { useToast } from "./toast";
@@ -26,6 +27,8 @@ export function CartLine({
     };
   };
 }) {
+  const t = useTranslations("cart");
+  const tToast = useTranslations("toast");
   const [pending, startTransition] = useTransition();
   const toast = useToast();
   const router = useRouter();
@@ -33,7 +36,7 @@ export function CartLine({
   function update(quantity: number) {
     startTransition(async () => {
       const result = await updateCartItemAction(item.id, quantity);
-      if (!result.ok) toast(result.message, "error");
+      if (!result.ok) toast(tToast(result.messageKey, result.values), "error");
       router.refresh();
     });
   }
@@ -41,7 +44,7 @@ export function CartLine({
   function remove() {
     startTransition(async () => {
       const result = await removeCartItemAction(item.id);
-      toast(result.message, result.ok ? "success" : "error");
+      toast(tToast(result.messageKey, result.values), result.ok ? "success" : "error");
       router.refresh();
     });
   }

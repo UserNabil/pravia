@@ -4,7 +4,17 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
-export type ActionResult = { ok: boolean; message: string; requiresAuth?: boolean };
+/**
+ * Les actions renvoient une cle de message plutot qu'un texte : c'est le
+ * composant client qui la traduit, dans la langue de la page. Le serveur n'a
+ * ainsi jamais a deviner la langue de l'appelant.
+ */
+export type ActionResult = {
+  ok: boolean;
+  messageKey: string;
+  values?: Record<string, string | number>;
+  requiresAuth?: boolean;
+};
 
 function refresh() {
   revalidatePath("/", "layout");
@@ -14,7 +24,7 @@ function refresh() {
 export async function addToCartAction(productId: string, quantity = 1): Promise<ActionResult> {
   const user = await getCurrentUser();
   if (!user) {
-    return { ok: false, message: "Connectez-vous pour ajouter au panier.", requiresAuth: true };
+    return { ok: false, messageKey: "signInToCart", requiresAuth: true };
   }
 
   const product = await db.product.findUnique({
@@ -23,7 +33,7 @@ export async function addToCartAction(productId: string, quantity = 1): Promise<
   });
 
   if (!product || !product.active) {
-    return { ok: false, message: "Ce produit n'est plus disponible." };
+    return { ok: false, messageKey: "productUnavailable" };
   }
 
   const existing = await db.cartItem.findUnique({
@@ -33,13 +43,9 @@ export async function addToCartAction(productId: string, quantity = 1): Promise<
   const requested = (existing?.quantity ?? 0) + Math.max(quantity, product.minOrder);
 
   if (requested > product.stock) {
-    return {
-      ok: false,
-      message:
-        product.stock === 0
-          ? "Produit en rupture de stock."
-          : `Stock insuffisant : ${product.stock} unite(s) disponible(s).`,
-    };
+    return product.stock === 0
+      ? { ok: false, messageKey: "outOfStock" }
+      : { ok: false, messageKey: "stockLimited", values: { count: product.stock } };
   }
 
   await db.cartItem.upsert({
@@ -49,12 +55,12 @@ export async function addToCartAction(productId: string, quantity = 1): Promise<
   });
 
   refresh();
-  return { ok: true, message: `${product.title} ajoute au panier.` };
+  return { ok: true, messageKey: "addedToCart", values: { title: product.title } };
 }
 
 export async function updateCartItemAction(itemId: string, quantity: number): Promise<ActionResult> {
   const user = await getCurrentUser();
-  if (!user) return { ok: false, message: "Session expiree.", requiresAuth: true };
+  if (!user) return { ok: false, messageKey: "sessionExpired", requiresAuth: true };
 
   const item = await db.cartItem.findUnique({
     where: { id: itemId },
@@ -62,50 +68,49 @@ export async function updateCartItemAction(itemId: string, quantity: number): Pr
   });
 
   if (!item || item.userId !== user.id) {
-    return { ok: false, message: "Article introuvable." };
+    return { ok: false, messageKey: "itemNotFound" };
   }
 
   if (quantity <= 0) {
     await db.cartItem.delete({ where: { id: itemId } });
     refresh();
-    return { ok: true, message: "Article retire du panier." };
+    return { ok: true, messageKey: "itemRemoved" };
   }
 
   const clamped = Math.min(Math.max(quantity, item.product.minOrder), item.product.stock);
   await db.cartItem.update({ where: { id: itemId }, data: { quantity: clamped } });
 
   refresh();
-  return {
-    ok: true,
-    message: clamped < quantity ? `Quantite limitee au stock disponible (${clamped}).` : "Panier mis a jour.",
-  };
+  return clamped < quantity
+    ? { ok: true, messageKey: "stockLimited", values: { count: clamped } }
+    : { ok: true, messageKey: "cartUpdated" };
 }
 
 export async function removeCartItemAction(itemId: string): Promise<ActionResult> {
   const user = await getCurrentUser();
-  if (!user) return { ok: false, message: "Session expiree.", requiresAuth: true };
+  if (!user) return { ok: false, messageKey: "sessionExpired", requiresAuth: true };
 
   const item = await db.cartItem.findUnique({ where: { id: itemId } });
-  if (!item || item.userId !== user.id) return { ok: false, message: "Article introuvable." };
+  if (!item || item.userId !== user.id) return { ok: false, messageKey: "itemNotFound" };
 
   await db.cartItem.delete({ where: { id: itemId } });
   refresh();
-  return { ok: true, message: "Article retire du panier." };
+  return { ok: true, messageKey: "itemRemoved" };
 }
 
 export async function clearCartAction(): Promise<ActionResult> {
   const user = await getCurrentUser();
-  if (!user) return { ok: false, message: "Session expiree.", requiresAuth: true };
+  if (!user) return { ok: false, messageKey: "sessionExpired", requiresAuth: true };
 
   await db.cartItem.deleteMany({ where: { userId: user.id } });
   refresh();
-  return { ok: true, message: "Panier vide." };
+  return { ok: true, messageKey: "cartEmptied" };
 }
 
 export async function toggleWishlistAction(productId: string): Promise<ActionResult> {
   const user = await getCurrentUser();
   if (!user) {
-    return { ok: false, message: "Connectez-vous pour utiliser vos favoris.", requiresAuth: true };
+    return { ok: false, messageKey: "signInToFavourites", requiresAuth: true };
   }
 
   const existing = await db.wishlistItem.findUnique({
@@ -116,11 +121,11 @@ export async function toggleWishlistAction(productId: string): Promise<ActionRes
     await db.wishlistItem.delete({ where: { id: existing.id } });
     revalidatePath("/favoris");
     revalidatePath("/", "layout");
-    return { ok: true, message: "Retire des favoris." };
+    return { ok: true, messageKey: "removedFromFavourites" };
   }
 
   await db.wishlistItem.create({ data: { userId: user.id, productId } });
   revalidatePath("/favoris");
   revalidatePath("/", "layout");
-  return { ok: true, message: "Ajoute aux favoris." };
+  return { ok: true, messageKey: "addedToFavourites" };
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Check, Loader2, ShoppingCart } from "lucide-react";
+import { useRouter } from "@/i18n/navigation";
 import { addToCartAction } from "@/app/actions/cart";
 import { useToast } from "./toast";
 import { cn } from "@/lib/format";
@@ -13,7 +14,7 @@ export function AddToCartButton({
   disabled = false,
   className,
   size = "md",
-  label = "Ajouter",
+  label,
 }: {
   productId: string;
   quantity?: number;
@@ -22,6 +23,8 @@ export function AddToCartButton({
   size?: "sm" | "md" | "lg";
   label?: string;
 }) {
+  const t = useTranslations("product");
+  const tToast = useTranslations("toast");
   const [pending, startTransition] = useTransition();
   const [done, setDone] = useState(false);
   const toast = useToast();
@@ -38,7 +41,8 @@ export function AddToCartButton({
   function handleClick() {
     startTransition(async () => {
       const result = await addToCartAction(productId, quantity);
-      toast(result.message, result.ok ? "success" : "error");
+      // Le serveur renvoie une cle de message, traduite ici cote client.
+      toast(tToast(result.messageKey, result.values), result.ok ? "success" : "error");
 
       if (result.requiresAuth) {
         router.push("/connexion?redirectTo=/panier");
@@ -67,7 +71,7 @@ export function AddToCartButton({
       ) : (
         <ShoppingCart className={iconSize} />
       )}
-      <span>{disabled ? "Indisponible" : done ? "Ajoute" : label}</span>
+      <span>{disabled ? t("unavailable") : done ? t("added") : (label ?? t("add"))}</span>
     </button>
   );
 }

@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, SlidersHorizontal, X, Zap } from "lucide-react";
 import { CategoryIcon } from "./category-icon";
-import { formatPrice, cn } from "@/lib/format";
-import { CONDITION_LABELS } from "@/lib/constants";
+import { cn } from "@/lib/format";
+
 
 type Facets = {
   categories: { id: string; slug: string; name: string; icon: string; _count: { products: number } }[];
@@ -16,6 +17,7 @@ type Facets = {
 };
 
 export function CatalogFilters({ facets }: { facets: Facets }) {
+  const t = useTranslations("catalogue");
   const [open, setOpen] = useState(false);
 
   return (
@@ -24,10 +26,10 @@ export function CatalogFilters({ facets }: { facets: Facets }) {
         type="button"
         onClick={() => setOpen(true)}
         className="btn btn-secondary lg:hidden"
-        aria-label="Ouvrir les filtres"
+        aria-label={t("openFilters")}
       >
         <SlidersHorizontal className="size-4" />
-        Filtres
+        {t("filters")}
       </button>
 
       {/* Panneau lateral permanent sur grand ecran. */}
@@ -41,17 +43,17 @@ export function CatalogFilters({ facets }: { facets: Facets }) {
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
-            aria-label="Fermer les filtres"
+            aria-label={t("closeFilters")}
             onClick={() => setOpen(false)}
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
           />
-          <div className="absolute inset-y-0 right-0 flex w-[min(22rem,90vw)] flex-col bg-background shadow-2xl">
+          <div className="absolute inset-y-0 end-0 flex w-[min(22rem,90vw)] flex-col bg-background shadow-2xl">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <span className="text-sm font-semibold">Filtres</span>
+              <span className="text-sm font-semibold">{t("filters")}</span>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                aria-label="Fermer"
+                aria-label={t("closeFilters")}
                 className="flex size-8 items-center justify-center rounded-lg text-muted hover:bg-surface-2"
               >
                 <X className="size-4" />
@@ -77,6 +79,9 @@ function FilterPanel({
   onApply?: () => void;
   hideHeading?: boolean;
 }) {
+  const t = useTranslations("catalogue");
+  const tCondition = useTranslations("condition");
+  const format = useFormatter();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -148,7 +153,7 @@ function FilterPanel({
       <div className={cn("flex items-center", hideHeading ? "justify-end" : "justify-between")}>
         {!hideHeading && (
           <h2 className="flex items-center gap-2 text-sm font-bold">
-            Filtrer
+            {t("filter")}
             {pending && <Loader2 className="size-3.5 animate-spin text-muted-2" />}
           </h2>
         )}
@@ -165,7 +170,7 @@ function FilterPanel({
             }}
             className="text-xs font-medium text-primary hover:underline"
           >
-            Reinitialiser ({activeCount})
+            {t("resetCount", { count: activeCount })}
           </button>
         )}
       </div>
@@ -176,7 +181,7 @@ function FilterPanel({
           onChange={() => toggleFlag("assurance")}
           label={
             <span className="flex items-center gap-1.5">
-              Trade Assurance
+              {t("tradeAssurance")}
               <Zap className="size-3.5 text-warning" />
             </span>
           }
@@ -184,11 +189,11 @@ function FilterPanel({
         <CheckRow
           checked={params.get("dispo") === "1"}
           onChange={() => toggleFlag("dispo")}
-          label="Expedition immediate"
+          label={t("readyToShip")}
         />
       </div>
 
-      <Group title="Types de produits">
+      <Group title={t("productTypes")}>
         <div className="grid grid-cols-5 gap-1.5">
           {facets.categories.map((category) => {
             const active = selectedCategory === category.slug;
@@ -219,8 +224,8 @@ function FilterPanel({
         )}
       </Group>
 
-      <Group title="Marque">
-        <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
+      <Group title={t("brandLabel")}>
+        <div className="max-h-56 space-y-2 overflow-y-auto pe-1">
           {facets.brands.map((brand) => (
             <CheckRow
               key={brand.id}
@@ -233,7 +238,7 @@ function FilterPanel({
         </div>
       </Group>
 
-      <Group title="Budget maximum">
+      <Group title={t("maxBudget")}>
         <input
           type="range"
           min={facets.minPrice}
@@ -245,26 +250,26 @@ function FilterPanel({
             setSingle("prix_max", priceMax >= facets.maxPrice ? null : String(priceMax))
           }
           onKeyUp={() => setSingle("prix_max", priceMax >= facets.maxPrice ? null : String(priceMax))}
-          aria-label="Budget maximum"
-          className="w-full accent-[var(--primary)]"
+          aria-label={t("maxBudget")}
+          className="h-6 w-full cursor-pointer accent-[var(--primary)]"
         />
         <div className="mt-1.5 flex items-center justify-between text-xs text-muted-2">
-          <span>{formatPrice(facets.minPrice)}</span>
+          <span>{format.number(facets.minPrice / 100, "currency")}</span>
           <span className="rounded-full bg-surface-3 px-2 py-0.5 font-semibold text-foreground">
-            {formatPrice(priceMax)}
+            {format.number(priceMax / 100, "currency")}
           </span>
-          <span>{formatPrice(facets.maxPrice)}</span>
+          <span>{format.number(facets.maxPrice / 100, "currency")}</span>
         </div>
       </Group>
 
-      <Group title="Etat">
+      <Group title={t("condition")}>
         <div className="space-y-2">
           {facets.conditions.map((row) => (
             <CheckRow
               key={row.condition}
               checked={selectedConditions.includes(row.condition)}
               onChange={() => toggleMulti("condition", row.condition)}
-              label={CONDITION_LABELS[row.condition] ?? row.condition}
+              label={tCondition(row.condition)}
               hint={String(row._count.condition)}
             />
           ))}
@@ -274,7 +279,7 @@ function FilterPanel({
   );
 }
 
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
+function Group({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="border-t border-border pt-5">
       <p className="mb-3 text-sm font-bold">{title}</p>
@@ -295,7 +300,7 @@ function CheckRow({
   hint?: string;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2.5 text-sm">
+    <label className="flex min-h-6 cursor-pointer items-center gap-2.5 py-0.5 text-sm">
       <input
         type="checkbox"
         checked={checked}

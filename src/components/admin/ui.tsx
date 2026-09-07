@@ -1,7 +1,8 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/format";
-import { ORDER_STATUS_LABELS, ORDER_STATUS_STYLES } from "@/lib/constants";
+import { ORDER_STATUS_STYLES } from "@/lib/constants";
 
 export function StatCard({
   label,
@@ -51,6 +52,8 @@ export function StatCard({
 }
 
 export function StatusBadge({ status }: { status: string }) {
+  const t = useTranslations("orderStatus");
+  const known = ["PENDING", "PAID", "SHIPPED", "DELIVERED", "CANCELLED", "REFUNDED"];
   return (
     <span
       className={cn(
@@ -58,7 +61,7 @@ export function StatusBadge({ status }: { status: string }) {
         ORDER_STATUS_STYLES[status] ?? "bg-surface-3 text-muted ring-border"
       )}
     >
-      {ORDER_STATUS_LABELS[status] ?? status}
+      {known.includes(status) ? t(status) : status}
     </span>
   );
 }
@@ -107,7 +110,7 @@ export function Th({ children, className }: { children?: React.ReactNode; classN
   return (
     <th
       className={cn(
-        "whitespace-nowrap border-b border-border px-4 py-2.5 text-left text-xs font-semibold text-muted-2",
+        "whitespace-nowrap border-b border-border px-4 py-2.5 text-start text-xs font-semibold text-muted-2",
         className
       )}
     >
@@ -132,6 +135,7 @@ export function AdminPagination({
   basePath: string;
   params: URLSearchParams;
 }) {
+  const t = useTranslations("admin.common");
   if (pageCount <= 1) return null;
 
   const hrefFor = (target: number) => {
@@ -143,18 +147,16 @@ export function AdminPagination({
 
   return (
     <div className="mt-4 flex items-center justify-between gap-3 text-sm">
-      <p className="text-xs text-muted-2">
-        Page {page} sur {pageCount}
-      </p>
+      <p className="text-xs text-muted-2">{t("pageOf", { page, total: pageCount })}</p>
       <div className="flex gap-2">
         {page > 1 && (
           <Link href={hrefFor(page - 1)} className="btn btn-secondary">
-            Precedent
+            {t("previous")}
           </Link>
         )}
         {page < pageCount && (
           <Link href={hrefFor(page + 1)} className="btn btn-secondary">
-            Suivant
+            {t("next")}
           </Link>
         )}
       </div>

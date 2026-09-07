@@ -112,16 +112,12 @@ export async function completeWithEmail(
   provider: ProviderId,
   profile: ExternalProfile,
   email: string
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true } | { ok: false; errorKey: string }> {
   const normalized = email.trim().toLowerCase();
 
   const taken = await db.user.findUnique({ where: { email: normalized }, select: { id: true } });
   if (taken) {
-    return {
-      ok: false,
-      error:
-        "Un compte existe deja avec cette adresse. Connectez-vous avec votre mot de passe, puis liez ce fournisseur depuis votre compte.",
-    };
+    return { ok: false, errorKey: "emailTakenLinkFirst" };
   }
 
   const user = await db.user.create({

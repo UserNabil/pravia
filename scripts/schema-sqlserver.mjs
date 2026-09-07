@@ -25,6 +25,11 @@ const LONG_TEXT = [
   ["Order", "notes"],
   ["Setting", "value"],
   ["SeoPage", "metaDescription"],
+  ["ProductTranslation", "description"],
+  ["ProductTranslation", "metaDescription"],
+  ["CategoryTranslation", "description"],
+  ["CategoryTranslation", "metaDescription"],
+  ["SeoPageTranslation", "metaDescription"],
 ];
 
 /**

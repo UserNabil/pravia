@@ -1,21 +1,21 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { redirectLocalized } from "@/lib/redirect";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { FREE_SHIPPING_THRESHOLD, SHIPPING_FLAT_RATE, VAT_RATE } from "@/lib/constants";
 
-export type CheckoutState = { error?: string };
+export type CheckoutState = { errorKey?: string; values?: Record<string, string | number> };
 
 const checkoutSchema = z.object({
-  fullName: z.string().min(2, "Nom complet requis"),
-  line1: z.string().min(4, "Adresse requise"),
+  fullName: z.string().min(2, "fullNameRequired"),
+  line1: z.string().min(4, "addressRequired"),
   line2: z.string().optional(),
-  city: z.string().min(2, "Ville requise"),
-  zip: z.string().min(3, "Code postal requis"),
-  country: z.string().min(2, "Pays requis"),
+  city: z.string().min(2, "cityRequired"),
+  zip: z.string().min(3, "zipRequired"),
+  country: z.string().min(2, "countryRequired"),
   phone: z.string().optional(),
   paymentMethod: z.enum(["CARD", "PAYPAL", "TRANSFER"]),
   saveAddress: z.string().optional(),
@@ -23,7 +23,7 @@ const checkoutSchema = z.object({
 
 export async function placeOrderAction(_prev: CheckoutState, formData: FormData): Promise<CheckoutState> {
   const user = await getCurrentUser();
-  if (!user) redirect("/connexion?redirectTo=/commande");
+  if (!user) return redirectLocalized("/connexion?redirectTo=/commande");
 
   const parsed = checkoutSchema.safeParse({
     fullName: String(formData.get("fullName") ?? "").trim(),
@@ -37,20 +37,25 @@ export async function placeOrderAction(_prev: CheckoutState, formData: FormData)
     saveAddress: String(formData.get("saveAddress") ?? ""),
   });
 
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success) return { errorKey: parsed.error.issues[0].message };
 
   const cart = await db.cartItem.findMany({
     where: { userId: user.id },
     include: { product: { include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } } } },
   });
 
-  if (!cart.length) return { error: "Votre panier est vide." };
+  if (!cart.length) return { errorKey: "cartEmpty" };
 
   // Verification du stock avant d'engager la commande.
   for (const item of cart) {
-    if (!item.product.active) return { error: `${item.product.title} n'est plus disponible.` };
+    if (!item.product.active) {
+      return { errorKey: "productUnavailable", values: { title: item.product.title } };
+    }
     if (item.quantity > item.product.stock) {
-      return { error: `Stock insuffisant pour ${item.product.title} (${item.product.stock} restant).` };
+      return {
+        errorKey: "insufficientStock",
+        values: { title: item.product.title, stock: item.product.stock },
+      };
     }
   }
 
@@ -124,22 +129,24 @@ export async function placeOrderAction(_prev: CheckoutState, formData: FormData)
 
   revalidatePath("/", "layout");
   revalidatePath("/compte/commandes");
-  redirect(`/compte/commandes/${order.id}?nouvelle=1`);
+  return redirectLocalized(`/compte/commandes/${order.id}?nouvelle=1`);
 }
 
 const reviewSchema = z.object({
   productId: z.string().min(1),
   rating: z.coerce.number().int().min(1).max(5),
-  title: z.string().min(3, "Titre trop court"),
-  body: z.string().min(10, "Votre avis doit contenir au moins 10 caracteres"),
+  title: z.string().min(3, "reviewTitleTooShort"),
+  body: z.string().min(10, "reviewBodyTooShort"),
 });
 
+export type ReviewState = { errorKey?: string; submitted?: boolean };
+
 export async function submitReviewAction(
-  _prev: { error?: string; success?: string },
+  _prev: ReviewState,
   formData: FormData
-): Promise<{ error?: string; success?: string }> {
+): Promise<ReviewState> {
   const user = await getCurrentUser();
-  if (!user) return { error: "Connectez-vous pour laisser un avis." };
+  if (!user) return { errorKey: "signInToReview" };
 
   const parsed = reviewSchema.safeParse({
     productId: formData.get("productId"),
@@ -148,13 +155,13 @@ export async function submitReviewAction(
     body: String(formData.get("body") ?? "").trim(),
   });
 
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success) return { errorKey: parsed.error.issues[0].message };
 
   const product = await db.product.findUnique({
     where: { id: parsed.data.productId },
     select: { slug: true },
   });
-  if (!product) return { error: "Produit introuvable." };
+  if (!product) return { errorKey: "productNotFound" };
 
   await db.review.upsert({
     where: { productId_userId: { productId: parsed.data.productId, userId: user.id } },
@@ -175,5 +182,5 @@ export async function submitReviewAction(
   });
 
   revalidatePath(`/produits/${product.slug}`);
-  return { success: "Merci ! Votre avis sera publie apres moderation." };
+  return { submitted: true };
 }

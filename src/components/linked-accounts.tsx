@@ -2,11 +2,12 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Loader2, Unlink } from "lucide-react";
 import { ProviderMark } from "./provider-buttons";
 import { unlinkProviderAction } from "@/app/actions/oauth";
 import { useToast } from "./toast";
-import { formatDate } from "@/lib/format";
+import { useFormat } from "@/lib/use-format";
 import type { ProviderId } from "@/lib/oauth";
 
 export type LinkedAccount = {
@@ -24,6 +25,9 @@ export function LinkedAccounts({
   linked: LinkedAccount[];
   available: { id: ProviderId; label: string }[];
 }) {
+  const t = useTranslations("auth");
+  const tErrors = useTranslations("formErrors");
+  const format = useFormat();
   const [pending, startTransition] = useTransition();
   const toast = useToast();
   const router = useRouter();
@@ -31,17 +35,15 @@ export function LinkedAccounts({
   function unlink(accountId: string) {
     startTransition(async () => {
       const result = await unlinkProviderAction(accountId);
-      toast(result.message, result.tone);
+      toast(tErrors(result.messageKey), result.tone);
       router.refresh();
     });
   }
 
   return (
     <section className="surface-card p-5">
-      <h2 className="text-sm font-bold">Connexions</h2>
-      <p className="mt-1 text-xs text-muted-2">
-        Liez plusieurs fournisseurs pour vous connecter depuis n&apos;importe quel appareil.
-      </p>
+      <h2 className="text-sm font-bold">{t("connections")}</h2>
+      <p className="mt-1 text-xs text-muted-2">{t("connectionsIntro")}</p>
 
       {linked.length > 0 && (
         <ul className="mt-4 divide-y divide-border">
@@ -53,15 +55,15 @@ export function LinkedAccounts({
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{account.label}</p>
                 <p className="truncate text-xs text-muted-2">
-                  {account.email ?? "Aucune adresse transmise"} — lie le{" "}
-                  {formatDate(account.createdAt)}
+                  {account.email ?? t("noEmailProvided")} —{" "}
+                  {t("linkedOn", { date: format.date(account.createdAt) })}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => unlink(account.id)}
                 disabled={pending}
-                aria-label={`Retirer ${account.label}`}
+                aria-label={t("unlink", { provider: account.label })}
                 className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-2 transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-50"
               >
                 {pending ? <Loader2 className="size-4 animate-spin" /> : <Unlink className="size-4" />}
@@ -73,7 +75,7 @@ export function LinkedAccounts({
 
       {available.length > 0 && (
         <div className="mt-4 space-y-2 border-t border-border pt-4">
-          <p className="text-xs font-medium text-muted">Ajouter une connexion</p>
+          <p className="text-xs font-medium text-muted">{t("addConnection")}</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {available.map((provider) => (
               <a
@@ -90,9 +92,7 @@ export function LinkedAccounts({
       )}
 
       {linked.length === 0 && available.length === 0 && (
-        <p className="mt-4 text-sm text-muted-2">
-          Aucun fournisseur de connexion n&apos;est active sur ce site.
-        </p>
+        <p className="mt-4 text-sm text-muted-2">{t("noProviders")}</p>
       )}
     </section>
   );

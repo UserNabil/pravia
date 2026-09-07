@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 import { Minus, Plus } from "lucide-react";
 import { AddToCartButton } from "./add-to-cart";
 import { WishlistButton } from "./wishlist-button";
-import { formatPrice } from "@/lib/format";
 
 export function BuyBox({
   productId,
@@ -19,6 +19,8 @@ export function BuyBox({
   minOrder: number;
   inWishlist: boolean;
 }) {
+  const t = useTranslations("product");
+  const format = useFormatter();
   const [quantity, setQuantity] = useState(Math.max(1, minOrder));
   const clamp = (value: number) => Math.min(Math.max(value, minOrder), Math.max(stock, minOrder));
 
@@ -30,7 +32,7 @@ export function BuyBox({
             type="button"
             onClick={() => setQuantity((q) => clamp(q - 1))}
             disabled={quantity <= minOrder || stock === 0}
-            aria-label="Diminuer la quantite"
+            aria-label={t("decrease")}
             className="flex size-9 items-center justify-center text-muted transition-colors hover:text-foreground disabled:opacity-40"
           >
             <Minus className="size-4" />
@@ -41,14 +43,14 @@ export function BuyBox({
             min={minOrder}
             max={stock}
             onChange={(event) => setQuantity(clamp(Number(event.target.value) || minOrder))}
-            aria-label="Quantite"
-            className="w-12 bg-transparent text-center text-sm font-semibold tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            aria-label={t("quantity")}
+            className="h-9 w-12 bg-transparent text-center text-sm font-semibold tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
           <button
             type="button"
             onClick={() => setQuantity((q) => clamp(q + 1))}
             disabled={quantity >= stock}
-            aria-label="Augmenter la quantite"
+            aria-label={t("increase")}
             className="flex size-9 items-center justify-center text-muted transition-colors hover:text-foreground disabled:opacity-40"
           >
             <Plus className="size-4" />
@@ -57,8 +59,10 @@ export function BuyBox({
 
         {quantity > 1 && (
           <p className="text-sm text-muted">
-            Sous-total{" "}
-            <span className="font-semibold text-foreground">{formatPrice(price * quantity)}</span>
+            {t("subtotal")}{" "}
+            <span className="font-semibold text-foreground">
+              {format.number((price * quantity) / 100, "currency")}
+            </span>
           </p>
         )}
       </div>
@@ -69,7 +73,7 @@ export function BuyBox({
           quantity={quantity}
           disabled={stock === 0}
           size="lg"
-          label="Ajouter au panier"
+          label={t("addToCart")}
           className="flex-1 sm:flex-none sm:px-8"
         />
         <WishlistButton productId={productId} active={inWishlist} variant="button" />

@@ -1,11 +1,11 @@
 import Image from "next/image";
-import Link from "next/link";
+import { getFormatter, getTranslations } from "next-intl/server";
 import { ShieldCheck, Zap } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 import { RatingBadge } from "./stars";
 import { AddToCartButton } from "./add-to-cart";
 import { WishlistButton } from "./wishlist-button";
-import { formatPrice, cn } from "@/lib/format";
-import { CONDITION_LABELS } from "@/lib/constants";
+import { cn } from "@/lib/format";
 
 export type ProductCardProduct = {
   id: string;
@@ -25,7 +25,7 @@ export type ProductCardProduct = {
   images: { url: string; alt: string }[];
 };
 
-export function ProductCard({
+export async function ProductCard({
   product,
   inWishlist = false,
   priority = false,
@@ -34,6 +34,13 @@ export function ProductCard({
   inWishlist?: boolean;
   priority?: boolean;
 }) {
+  const [t, tCondition, tCommon, format] = await Promise.all([
+    getTranslations("product"),
+    getTranslations("condition"),
+    getTranslations("common"),
+    getFormatter(),
+  ]);
+
   const image = product.images[0];
   const discount =
     product.compareAtPrice && product.compareAtPrice > product.price
@@ -41,6 +48,7 @@ export function ProductCard({
       : 0;
 
   const attributes = [product.carrier, product.storage, product.color].filter(Boolean).join(" | ");
+  const price = (value: number) => format.number(value / 100, "currency");
 
   return (
     <article className="group surface-card flex flex-col overflow-hidden transition-colors hover:border-border-strong">
@@ -62,24 +70,26 @@ export function ProductCard({
             />
           ) : (
             <div className="flex size-full items-center justify-center text-xs text-muted-2">
-              Aucun visuel
+              {t("noImage")}
             </div>
           )}
         </Link>
 
-        <div className="absolute left-2.5 top-2.5 flex flex-col items-start gap-1">
+        <div className="absolute start-2.5 top-2.5 flex flex-col items-start gap-1">
           {discount > 0 && (
-            <span className="chip bg-danger/15 text-danger">-{discount}%</span>
+            <span dir="ltr" className="chip bg-danger/15 text-danger">
+              {`-${discount}%`}
+            </span>
           )}
           {product.condition !== "NEW" && (
-            <span className="chip bg-surface-3 text-muted">{CONDITION_LABELS[product.condition]}</span>
+            <span className="chip bg-surface-3 text-muted">{tCondition(product.condition)}</span>
           )}
           {product.stock === 0 && (
-            <span className="chip bg-surface-3 text-muted">Rupture</span>
+            <span className="chip bg-surface-3 text-muted">{tCommon("outOfStock")}</span>
           )}
         </div>
 
-        <div className="absolute right-2.5 top-2.5">
+        <div className="absolute end-2.5 top-2.5">
           <WishlistButton productId={product.id} active={inWishlist} />
         </div>
       </div>
@@ -96,14 +106,12 @@ export function ProductCard({
         </div>
 
         <div className="mt-auto space-y-1">
-          <p className="text-xs text-muted-2">Total</p>
+          <p className="text-xs text-muted-2">{tCommon("total")}</p>
           <p className="flex flex-wrap items-baseline gap-1.5 text-sm">
-            <span className="text-muted-2">A partir de</span>
-            <span className="text-base font-bold text-foreground">{formatPrice(product.price)}</span>
+            <span className="text-muted-2">{tCommon("from")}</span>
+            <span className="text-base font-bold text-foreground">{price(product.price)}</span>
             {discount > 0 && (
-              <span className="text-xs text-muted-2 line-through">
-                {formatPrice(product.compareAtPrice!)}
-              </span>
+              <span className="text-xs text-muted-2 line-through">{price(product.compareAtPrice!)}</span>
             )}
           </p>
         </div>
@@ -113,23 +121,18 @@ export function ProductCard({
             {attributes}
             <Link
               href={`/produits/${product.slug}`}
-              className="ml-1.5 font-medium text-primary hover:underline"
+              className="ms-1.5 font-medium text-primary hover:underline"
             >
-              En savoir plus
+              {tCommon("learnMore")}
             </Link>
           </p>
         )}
 
         <div className="flex items-center gap-2 pt-0.5">
-          <AddToCartButton
-            productId={product.id}
-            disabled={product.stock === 0}
-            className="flex-1"
-            size="sm"
-          />
+          <AddToCartButton productId={product.id} disabled={product.stock === 0} className="flex-1" size="sm" />
           {product.tradeAssurance && (
             <span
-              title="Trade Assurance : paiement et livraison garantis"
+              title="Trade Assurance"
               className={cn("chip shrink-0 bg-primary-soft text-primary")}
             >
               <ShieldCheck className="size-3" />

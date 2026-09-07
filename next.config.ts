@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
+
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   // Sortie autonome : le dossier .next/standalone contient le serveur et ses
@@ -9,9 +12,7 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "4mb" },
   },
 
-  // Derriere IIS puis Cloudflare, l'adresse du client arrive dans les en-tetes
-  // de transfert : sans cette option, Next les ignore.
   poweredByHeader: false,
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

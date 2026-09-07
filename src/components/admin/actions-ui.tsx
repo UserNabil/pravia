@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Check, Loader2 } from "lucide-react";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/format";
@@ -23,6 +24,7 @@ export function ConfirmButton({
   className?: string;
   successMessage?: string;
 }) {
+  const t = useTranslations("admin.common");
   const [pending, startTransition] = useTransition();
   const [armed, setArmed] = useState(false);
   const toast = useToast();
@@ -55,7 +57,7 @@ export function ConfirmButton({
           onClick={() => setArmed(false)}
           className="btn btn-ghost px-2 py-1 text-xs"
         >
-          Annuler
+          {t("cancel")}
         </button>
       </span>
     );
@@ -107,7 +109,7 @@ export function ToggleButton({
       <span
         className={cn(
           "absolute top-0.5 size-4 rounded-full bg-white transition-all",
-          optimistic ? "left-[1.125rem]" : "left-0.5"
+          optimistic ? "start-[1.125rem]" : "start-0.5"
         )}
       />
     </button>
@@ -168,6 +170,7 @@ export function InlineNumber({
   value: number;
   min?: number;
 }) {
+  const t = useTranslations("admin.products");
   const [pending, startTransition] = useTransition();
   const [current, setCurrent] = useState(value);
   const [saved, setSaved] = useState(false);
@@ -197,7 +200,7 @@ export function InlineNumber({
         onKeyDown={(event) => {
           if (event.key === "Enter") event.currentTarget.blur();
         }}
-        aria-label="Stock"
+        aria-label={t("stock")}
         className="w-16 rounded-lg border border-border bg-surface-2 px-2 py-1 text-xs tabular-nums outline-none transition-colors focus:border-primary"
       />
       {pending && <Loader2 className="size-3.5 animate-spin text-muted-2" />}
