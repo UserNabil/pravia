@@ -1,0 +1,245 @@
+// Pravia - Marketplace de materiel technologique
+// Schema de donnees complet : catalogue, comptes, panier, commandes, avis, CMS.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ---------------------------------------------------------------- Comptes
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("CUSTOMER") // CUSTOMER | ADMIN
+  avatarColor  String   @default("#6366f1")
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  addresses Address[]
+  cartItems CartItem[]
+  orders    Order[]
+  reviews   Review[]
+  wishlist  WishlistItem[]
+
+  @@index([role])
+}
+
+model Address {
+  id        String  @id @default(cuid())
+  userId    String
+  label     String  @default("Domicile")
+  fullName  String
+  line1     String
+  line2     String?
+  city      String
+  zip       String
+  country   String  @default("France")
+  phone     String?
+  isDefault Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------- Catalogue
+
+model Category {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  icon        String  @default("package") // nom d'icone lucide
+  description String?
+  sortOrder   Int     @default(0)
+
+  products Product[]
+}
+
+model Brand {
+  id       String @id @default(cuid())
+  name     String
+  slug     String @unique
+  accent   String @default("#64748b")
+  products Product[]
+}
+
+model Product {
+  id             String  @id @default(cuid())
+  slug           String  @unique
+  title          String
+  subtitle       String?
+  description    String
+  price          Int // en centimes
+  compareAtPrice Int? // prix barre, en centimes
+  stock          Int     @default(0)
+  sku            String  @unique
+  condition      String  @default("NEW") // NEW | REFURBISHED | SECOND_HAND
+  minOrder       Int     @default(1)
+  tradeAssurance Boolean @default(false)
+  readyToShip    Boolean @default(true)
+  featured       Boolean @default(false)
+  active         Boolean @default(true)
+  soldCount      Int     @default(0)
+  storage        String? // 128GB, 512GB...
+  color          String?
+  carrier        String? // T-Mobile, SM-F936U1...
+  warrantyMonths Int     @default(24)
+
+  categoryId String
+  brandId    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  category Category       @relation(fields: [categoryId], references: [id])
+  brand    Brand          @relation(fields: [brandId], references: [id])
+  images   ProductImage[]
+  specs    ProductSpec[]
+  reviews  Review[]
+  cartItems CartItem[]
+  orderItems OrderItem[]
+  wishlist WishlistItem[]
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([active])
+}
+
+model ProductImage {
+  id        String @id @default(cuid())
+  productId String
+  url       String
+  alt       String @default("")
+  sortOrder Int    @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model ProductSpec {
+  id        String @id @default(cuid())
+  productId String
+  label     String
+  value     String
+  sortOrder Int    @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+// ---------------------------------------------------------------- Panier & souhaits
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------- Commandes
+
+model Order {
+  id       String @id @default(cuid())
+  number   String @unique
+  userId   String
+  status   String @default("PENDING") // PENDING | PAID | SHIPPED | DELIVERED | CANCELLED | REFUNDED
+
+  subtotal Int
+  shipping Int
+  tax      Int
+  total    Int
+
+  paymentMethod String @default("CARD")
+
+  shipFullName String
+  shipLine1    String
+  shipLine2    String?
+  shipCity     String
+  shipZip      String
+  shipCountry  String
+  shipPhone    String?
+
+  trackingNumber String?
+  notes          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User        @relation(fields: [userId], references: [id])
+  items OrderItem[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String?
+
+  titleSnapshot String
+  priceSnapshot Int
+  imageSnapshot String?
+  quantity      Int
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+}
+
+// ---------------------------------------------------------------- Avis
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  rating    Int
+  title     String
+  body      String
+  status    String   @default("PUBLISHED") // PENDING | PUBLISHED | REJECTED
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId])
+  @@index([productId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------- Reglages
+
+model Setting {
+  key   String @id
+  value String
+}
