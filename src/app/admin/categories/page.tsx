@@ -31,6 +31,9 @@ export default async function AdminCategoriesPage() {
           icon: category.icon,
           description: category.description,
           sortOrder: category.sortOrder,
+          metaTitle: category.metaTitle,
+          metaDescription: category.metaDescription,
+          noIndex: category.noIndex,
           productCount: category._count.products,
         }))}
       />

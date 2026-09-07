@@ -13,7 +13,9 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma db push --force-reset && npm run db:seed",
     "setup": "prisma generate && prisma db push && npm run db:seed",
-    "e2e": "node scripts/e2e.mjs"
+    "e2e": "node scripts/e2e.mjs",
+    "seo": "node scripts/seo-check.mjs",
+    "verify": "node scripts/e2e.mjs && node scripts/seo-check.mjs"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.10.0",

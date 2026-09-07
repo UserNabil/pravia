@@ -9,7 +9,10 @@ import { ORDER_STATUS_LABELS, ORDER_STATUS_STYLES } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { title: "Mon compte" };
+export const metadata: Metadata = {
+  title: "Mon compte",
+  robots: { index: false, follow: false },
+};
 
 export default async function AccountPage() {
   const user = await requireUser();

@@ -78,13 +78,3 @@ export async function requireUser(): Promise<SessionUser> {
   return user;
 }
 
-export async function requireAdmin(): Promise<SessionUser> {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") throw new Error("FORBIDDEN");
-  return user;
-}
-
-export async function isAdmin(): Promise<boolean> {
-  const user = await getCurrentUser();
-  return user?.role === "ADMIN";
-}

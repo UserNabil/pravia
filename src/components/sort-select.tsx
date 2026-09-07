@@ -5,17 +5,18 @@ import { useTransition } from "react";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { SORT_OPTIONS } from "@/lib/constants";
 
-export function SortSelect() {
+export function SortSelect({ hasQuery = false }: { hasQuery?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const [pending, startTransition] = useTransition();
 
-  const current = params.get("tri") ?? "best-sellers";
+  const current = params.get("tri") ?? (hasQuery ? "relevance" : "best-sellers");
 
   function handleChange(event: React.ChangeEvent<HTMLSelectElement>) {
     const next = new URLSearchParams(params.toString());
-    next.set("tri", event.target.value);
+    if (event.target.value === "relevance") next.delete("tri");
+    else next.set("tri", event.target.value);
     next.delete("page");
     startTransition(() => router.push(`${pathname}?${next}`, { scroll: false }));
   }

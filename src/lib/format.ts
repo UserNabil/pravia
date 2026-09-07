@@ -8,20 +8,6 @@ export function formatPrice(cents: number): string {
   }).format(cents / 100);
 }
 
-export function formatPriceExact(cents: number): string {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-  }).format(cents / 100);
-}
-
-export function parsePriceToCents(input: string | number): number {
-  if (typeof input === "number") return Math.round(input * 100);
-  const normalized = input.replace(/\s/g, "").replace(",", ".");
-  const value = Number.parseFloat(normalized);
-  return Number.isFinite(value) ? Math.round(value * 100) : 0;
-}
-
 export function formatDate(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
   return new Intl.DateTimeFormat("fr-FR", {

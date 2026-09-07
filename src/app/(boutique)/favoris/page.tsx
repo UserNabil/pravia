@@ -8,7 +8,10 @@ import { ProductCard } from "@/components/product-card";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { title: "Mes favoris" };
+export const metadata: Metadata = {
+  title: "Mes favoris",
+  robots: { index: false, follow: false },
+};
 
 export default async function WishlistPage() {
   const user = await getCurrentUser();

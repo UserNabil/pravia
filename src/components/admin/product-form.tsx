@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Check, Loader2, Plus, X } from "lucide-react";
 import type { AdminState } from "@/app/actions/admin";
 import { CONDITIONS, CONDITION_LABELS } from "@/lib/constants";
+import { cn } from "@/lib/format";
 
 export type ProductFormValues = {
   id?: string;
@@ -25,6 +26,10 @@ export type ProductFormValues = {
   color: string;
   carrier: string;
   imageUrl: string;
+  metaTitle: string;
+  metaDescription: string;
+  ogImage: string;
+  noIndex: boolean;
   tradeAssurance: boolean;
   readyToShip: boolean;
   featured: boolean;
@@ -169,6 +174,42 @@ export function ProductForm({
           <p className="mt-2 text-xs text-muted-2">
             Les lignes vides sont ignorees a l&apos;enregistrement.
           </p>
+        </section>
+
+        <section className="surface-card p-5">
+          <h2 className="text-sm font-bold">Referencement</h2>
+          <p className="mt-1 text-xs text-muted-2">
+            Laissez vide pour generer automatiquement a partir du titre et de la description.
+          </p>
+
+          <div className="mt-4 space-y-4">
+            <SeoCounted
+              label="Titre SEO"
+              name="metaTitle"
+              defaultValue={values.metaTitle}
+              max={60}
+              placeholder={values.title || "Titre affiche dans les resultats Google"}
+            />
+            <SeoCounted
+              label="Meta description"
+              name="metaDescription"
+              defaultValue={values.metaDescription}
+              max={158}
+              textarea
+              placeholder="Resume vendeur affiche sous le titre dans les resultats de recherche."
+            />
+            <Field
+              label="Image de partage"
+              name="ogImage"
+              defaultValue={values.ogImage}
+              placeholder="Laisser vide : une image est generee automatiquement"
+            />
+            <Checkbox
+              name="noIndex"
+              label="Exclure cette fiche des moteurs de recherche"
+              defaultChecked={values.noIndex}
+            />
+          </div>
         </section>
       </div>
 
@@ -361,6 +402,65 @@ function Field({
         className="input"
       />
       {hint && <p className="mt-1 text-xs text-muted-2">{hint}</p>}
+    </div>
+  );
+}
+
+function SeoCounted({
+  label,
+  name,
+  defaultValue,
+  max,
+  textarea = false,
+  placeholder,
+}: {
+  label: string;
+  name: string;
+  defaultValue?: string;
+  max: number;
+  textarea?: boolean;
+  placeholder?: string;
+}) {
+  const [value, setValue] = useState(defaultValue ?? "");
+  const tone =
+    value.length === 0
+      ? "text-muted-2"
+      : value.length > max
+        ? "text-danger"
+        : value.length < max * 0.5
+          ? "text-warning"
+          : "text-success";
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <label htmlFor={name} className="label">
+          {label}
+        </label>
+        <span className={cn("text-xs tabular-nums", tone)}>
+          {value.length} / {max}
+        </span>
+      </div>
+      {textarea ? (
+        <textarea
+          id={name}
+          name={name}
+          rows={3}
+          value={value}
+          placeholder={placeholder}
+          onChange={(event) => setValue(event.target.value)}
+          className="input resize-y"
+        />
+      ) : (
+        <input
+          id={name}
+          name={name}
+          value={value}
+          placeholder={placeholder}
+          onChange={(event) => setValue(event.target.value)}
+          className="input"
+        />
+      )}
     </div>
   );
 }

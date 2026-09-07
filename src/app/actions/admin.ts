@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
 import { slugify } from "@/lib/format";
+import { rebuildSearchIndex, syncProductSearchText } from "@/lib/search-index";
 import { ORDER_STATUSES } from "@/lib/constants";
 
 export type AdminState = { error?: string; success?: string };
@@ -42,6 +43,9 @@ const productSchema = z.object({
   color: z.string().optional(),
   carrier: z.string().optional(),
   imageUrl: z.string().optional(),
+  metaTitle: z.string().optional(),
+  metaDescription: z.string().optional(),
+  ogImage: z.string().optional(),
 });
 
 function readProductForm(formData: FormData) {
@@ -62,6 +66,9 @@ function readProductForm(formData: FormData) {
     color: String(formData.get("color") ?? "").trim() || undefined,
     carrier: String(formData.get("carrier") ?? "").trim() || undefined,
     imageUrl: String(formData.get("imageUrl") ?? "").trim() || undefined,
+    metaTitle: String(formData.get("metaTitle") ?? "").trim() || undefined,
+    metaDescription: String(formData.get("metaDescription") ?? "").trim() || undefined,
+    ogImage: String(formData.get("ogImage") ?? "").trim() || undefined,
   };
 }
 
@@ -105,6 +112,10 @@ export async function createProductAction(_prev: AdminState, formData: FormData)
       storage: data.storage ?? null,
       color: data.color ?? null,
       carrier: data.carrier ?? null,
+      metaTitle: data.metaTitle ?? null,
+      metaDescription: data.metaDescription ?? null,
+      ogImage: data.ogImage ?? null,
+      noIndex: formData.get("noIndex") === "on",
       tradeAssurance: formData.get("tradeAssurance") === "on",
       readyToShip: formData.get("readyToShip") === "on",
       featured: formData.get("featured") === "on",
@@ -116,6 +127,7 @@ export async function createProductAction(_prev: AdminState, formData: FormData)
   });
 
   await saveSpecs(product.id, formData);
+  await syncProductSearchText(product.id);
 
   refreshAdmin("/produits");
   redirect(`/admin/produits/${product.id}?enregistre=1`);
@@ -156,6 +168,10 @@ export async function updateProductAction(
       storage: data.storage ?? null,
       color: data.color ?? null,
       carrier: data.carrier ?? null,
+      metaTitle: data.metaTitle ?? null,
+      metaDescription: data.metaDescription ?? null,
+      ogImage: data.ogImage ?? null,
+      noIndex: formData.get("noIndex") === "on",
       tradeAssurance: formData.get("tradeAssurance") === "on",
       readyToShip: formData.get("readyToShip") === "on",
       featured: formData.get("featured") === "on",
@@ -176,6 +192,7 @@ export async function updateProductAction(
   }
 
   await saveSpecs(productId, formData);
+  await syncProductSearchText(productId);
 
   refreshAdmin("/produits");
   return { success: "Produit enregistre." };
@@ -237,10 +254,21 @@ export async function saveCategoryAction(_prev: AdminState, formData: FormData):
   const clash = await db.category.findUnique({ where: { slug }, select: { id: true } });
   if (clash && clash.id !== id) return { error: "Une categorie porte deja ce nom." };
 
+  const seo = {
+    metaTitle: String(formData.get("metaTitle") ?? "").trim() || null,
+    metaDescription: String(formData.get("metaDescription") ?? "").trim() || null,
+    noIndex: formData.get("noIndex") === "on",
+  };
+
   if (id) {
-    await db.category.update({ where: { id }, data: { name, slug, icon, description, sortOrder } });
+    await db.category.update({
+      where: { id },
+      data: { name, slug, icon, description, sortOrder, ...seo },
+    });
+    // Le nom de la categorie alimente l'index : il faut le repercuter.
+    await reindexProductsOf({ categoryId: id });
   } else {
-    await db.category.create({ data: { name, slug, icon, description, sortOrder } });
+    await db.category.create({ data: { name, slug, icon, description, sortOrder, ...seo } });
   }
 
   refreshAdmin();
@@ -269,8 +297,12 @@ export async function saveBrandAction(_prev: AdminState, formData: FormData): Pr
   const clash = await db.brand.findUnique({ where: { slug }, select: { id: true } });
   if (clash && clash.id !== id) return { error: "Une marque porte deja ce nom." };
 
-  if (id) await db.brand.update({ where: { id }, data: { name, slug, accent } });
-  else await db.brand.create({ data: { name, slug, accent } });
+  if (id) {
+    await db.brand.update({ where: { id }, data: { name, slug, accent } });
+    await reindexProductsOf({ brandId: id });
+  } else {
+    await db.brand.create({ data: { name, slug, accent } });
+  }
 
   refreshAdmin();
   return { success: id ? "Marque mise a jour." : "Marque creee." };
@@ -398,4 +430,126 @@ export async function saveSettingsAction(_prev: AdminState, formData: FormData):
 
   refreshAdmin();
   return { success: "Reglages enregistres." };
+}
+
+/* ------------------------------------------------------------- referencement */
+
+/** Reindexe les produits d'une categorie ou d'une marque apres renommage. */
+async function reindexProductsOf(where: { categoryId?: string; brandId?: string }) {
+  const products = await db.product.findMany({ where, select: { id: true } });
+  for (const product of products) {
+    await syncProductSearchText(product.id);
+  }
+}
+
+const SEO_KEYS = [
+  "seo.siteUrl",
+  "seo.siteName",
+  "seo.titleTemplate",
+  "seo.defaultTitle",
+  "seo.defaultDescription",
+  "seo.defaultOgImage",
+  "seo.twitterHandle",
+  "seo.googleVerification",
+  "seo.bingVerification",
+  "seo.organizationLegalName",
+  "seo.organizationAddress",
+] as const;
+
+export async function saveSeoSettingsAction(
+  _prev: AdminState,
+  formData: FormData
+): Promise<AdminState> {
+  await guard();
+
+  const siteUrl = String(formData.get("seo.siteUrl") ?? "").trim();
+  if (siteUrl && !/^https?:\/\/[^\s/]+/i.test(siteUrl)) {
+    return { error: "L'adresse du site doit commencer par http:// ou https://" };
+  }
+
+  for (const key of SEO_KEYS) {
+    const value = String(formData.get(key) ?? "").trim();
+    await db.setting.upsert({ where: { key }, update: { value }, create: { key, value } });
+  }
+
+  // Case cochee = site indexable ; absente = interdiction totale aux robots.
+  const indexable = formData.get("seo.indexable") === "on" ? "1" : "0";
+  await db.setting.upsert({
+    where: { key: "seo.indexable" },
+    update: { value: indexable },
+    create: { key: "seo.indexable", value: indexable },
+  });
+
+  refreshAdmin();
+  return {
+    success:
+      indexable === "1"
+        ? "Reglages enregistres. Le site est ouvert a l'indexation."
+        : "Reglages enregistres. Le site est ferme aux robots (robots.txt bloquant).",
+  };
+}
+
+export async function saveSeoPageAction(_prev: AdminState, formData: FormData): Promise<AdminState> {
+  await guard();
+
+  const path = String(formData.get("path") ?? "").trim();
+  if (!path.startsWith("/")) return { error: "Le chemin doit commencer par /" };
+
+  const priority = Number(formData.get("priority") ?? 0.5);
+
+  const data = {
+    label: String(formData.get("label") ?? path).trim(),
+    metaTitle: String(formData.get("metaTitle") ?? "").trim() || null,
+    metaDescription: String(formData.get("metaDescription") ?? "").trim() || null,
+    ogImage: String(formData.get("ogImage") ?? "").trim() || null,
+    noIndex: formData.get("noIndex") === "on",
+    inSitemap: formData.get("inSitemap") === "on",
+    changeFrequency: String(formData.get("changeFrequency") ?? "weekly"),
+    priority: Number.isFinite(priority) ? Math.min(1, Math.max(0, priority)) : 0.5,
+  };
+
+  await db.seoPage.upsert({ where: { path }, update: data, create: { path, ...data } });
+
+  refreshAdmin(path);
+  return { success: "Page enregistree." };
+}
+
+/* ------------------------------------------------------------------ recherche */
+
+export async function saveSynonymAction(_prev: AdminState, formData: FormData): Promise<AdminState> {
+  await guard();
+
+  const { normalize } = await import("@/lib/search");
+  const term = normalize(String(formData.get("term") ?? ""));
+  const targets = String(formData.get("targets") ?? "").trim();
+
+  if (!term) return { error: "Le terme recherche est requis." };
+  if (!targets) return { error: "Indiquez au moins un terme de remplacement." };
+
+  await db.searchSynonym.upsert({
+    where: { term },
+    update: { targets },
+    create: { term, targets },
+  });
+
+  refreshAdmin();
+  return { success: `"${term}" renvoie desormais vers "${targets}".` };
+}
+
+export async function deleteSynonymAction(id: string): Promise<void> {
+  await guard();
+  await db.searchSynonym.delete({ where: { id } });
+  refreshAdmin();
+}
+
+export async function rebuildSearchIndexAction(): Promise<void> {
+  await guard();
+  await rebuildSearchIndex();
+  refreshAdmin();
+}
+
+export async function clearSearchLogAction(): Promise<void> {
+  await guard();
+  await db.searchQuery.deleteMany();
+  refreshAdmin();
 }

@@ -60,6 +60,11 @@ model Category {
   description String?
   sortOrder   Int     @default(0)
 
+  metaTitle       String?
+  metaDescription String?
+  ogImage         String?
+  noIndex         Boolean @default(false)
+
   products Product[]
 }
 
@@ -93,6 +98,16 @@ model Product {
   carrier        String? // T-Mobile, SM-F936U1...
   warrantyMonths Int     @default(24)
 
+  // Referencement : vides, on retombe sur le titre et la description du produit.
+  metaTitle       String?
+  metaDescription String?
+  ogImage         String?
+  noIndex         Boolean @default(false)
+
+  // Index de recherche : titre, marque, categorie et specs normalises
+  // (minuscules, sans accents). Recalcule a chaque ecriture.
+  searchText String @default("")
+
   categoryId String
   brandId    String
   createdAt  DateTime @default(now())
@@ -110,6 +125,7 @@ model Product {
   @@index([categoryId])
   @@index([brandId])
   @@index([active])
+  @@index([searchText])
 }
 
 model ProductImage {
@@ -242,4 +258,44 @@ model Review {
 model Setting {
   key   String @id
   value String
+}
+
+// ---------------------------------------------------------------- Referencement
+
+/// Metadonnees des pages editoriales, editables depuis le back-office.
+/// Les produits et categories portent leurs propres champs SEO.
+model SeoPage {
+  id              String   @id @default(cuid())
+  path            String   @unique // "/", "/produits", "/aide"
+  label           String
+  metaTitle       String?
+  metaDescription String?
+  ogImage         String?
+  noIndex         Boolean  @default(false)
+  changeFrequency String   @default("weekly")
+  priority        Float    @default(0.5)
+  inSitemap       Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+}
+
+// ------------------------------------------------------------------- Recherche
+
+/// Journal des recherches : alimente les statistiques du back-office et met en
+/// evidence les requetes sans resultat.
+model SearchQuery {
+  id         String   @id @default(cuid())
+  term       String
+  normalized String
+  results    Int
+  createdAt  DateTime @default(now())
+
+  @@index([normalized])
+  @@index([createdAt])
+}
+
+/// Synonymes de recherche : "pc portable" doit trouver "ordinateur portable".
+model SearchSynonym {
+  id      String @id @default(cuid())
+  term    String @unique // forme normalisee saisie par l'internaute
+  targets String // termes de remplacement, separes par des virgules
 }

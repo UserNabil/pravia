@@ -10,7 +10,10 @@ import { ORDER_STATUSES, ORDER_STATUS_LABELS, ORDER_STATUS_STYLES } from "@/lib/
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { title: "Detail de commande" };
+export const metadata: Metadata = {
+  title: "Detail de commande",
+  robots: { index: false, follow: false },
+};
 
 /** Etapes affichees dans le suivi ; les statuts hors parcours sont traites a part. */
 const TIMELINE = ["PENDING", "PAID", "SHIPPED", "DELIVERED"] as const;

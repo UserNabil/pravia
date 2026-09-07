@@ -13,6 +13,9 @@ type Editable = {
   accent?: string;
   description?: string | null;
   sortOrder?: number;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  noIndex?: boolean;
 };
 
 /** Formulaire de creation / edition partage par les categories et les marques. */
@@ -113,6 +116,51 @@ export function TaxonomyForm({
               defaultValue={editing?.sortOrder ?? 0}
               className="input"
             />
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-2">
+              Referencement
+            </p>
+
+            <div className="mt-3 space-y-3">
+              <div>
+                <label htmlFor="metaTitle" className="label">
+                  Titre SEO
+                </label>
+                <input
+                  id="metaTitle"
+                  name="metaTitle"
+                  defaultValue={editing?.metaTitle ?? ""}
+                  className="input"
+                  placeholder="Laisser vide pour un titre genere"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="metaDescription" className="label">
+                  Meta description
+                </label>
+                <textarea
+                  id="metaDescription"
+                  name="metaDescription"
+                  defaultValue={editing?.metaDescription ?? ""}
+                  rows={3}
+                  className="input resize-y"
+                  placeholder="Resume affiche dans les resultats de recherche"
+                />
+              </div>
+
+              <label className="flex cursor-pointer items-center gap-2.5 text-sm">
+                <input
+                  type="checkbox"
+                  name="noIndex"
+                  defaultChecked={editing?.noIndex ?? false}
+                  className="size-4 rounded border-border accent-[var(--primary)]"
+                />
+                Exclure des moteurs de recherche
+              </label>
+            </div>
           </div>
         </>
       ) : (

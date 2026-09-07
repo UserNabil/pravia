@@ -12,6 +12,7 @@ import { ReviewForm } from "@/components/review-form";
 import { Stars } from "@/components/stars";
 import { formatPrice, formatDate, cn } from "@/lib/format";
 import { CONDITION_LABELS, FREE_SHIPPING_THRESHOLD } from "@/lib/constants";
+import { breadcrumbSchema, buildMetadata, getSiteUrl, jsonLd, productSchema } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -23,15 +24,45 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = await db.product.findUnique({
     where: { slug },
-    select: { title: true, subtitle: true, description: true },
+    select: {
+      title: true,
+      subtitle: true,
+      description: true,
+      price: true,
+      stock: true,
+      active: true,
+      metaTitle: true,
+      metaDescription: true,
+      ogImage: true,
+      noIndex: true,
+      brand: { select: { name: true } },
+      category: { select: { name: true } },
+    },
   });
 
-  if (!product) return { title: "Produit introuvable" };
+  if (!product) return { title: "Produit introuvable", robots: { index: false, follow: false } };
 
-  return {
-    title: product.title,
-    description: product.subtitle ?? product.description.slice(0, 160),
-  };
+  const price = new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(product.price / 100);
+
+  return buildMetadata({
+    title: product.metaTitle?.trim() || `${product.title} - ${product.brand.name}`,
+    description:
+      product.metaDescription?.trim() ||
+      `${product.subtitle ?? product.description} A partir de ${price}, ${
+        product.stock > 0 ? "en stock" : "bientot disponible"
+      }, garanti et livre en 48 h.`,
+    path: `/produits/${slug}`,
+    image: product.ogImage,
+    // Un produit depublie ou explicitement exclu ne doit pas rester indexe.
+    noIndex: product.noIndex || !product.active,
+    type: "article",
+    // Chaque fiche a son visuel social genere dans le meme segment.
+    useSegmentImage: !product.ogImage,
+  });
 }
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -41,7 +72,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   const user = await getCurrentUser();
 
-  const [related, wishlisted, ownReview] = await Promise.all([
+  const [related, wishlisted, ownReview, siteUrl] = await Promise.all([
     getRelatedProducts(product.id, product.categoryId),
     user
       ? db.wishlistItem.findUnique({
@@ -53,6 +84,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           where: { productId_userId: { productId: product.id, userId: user.id } },
         })
       : null,
+    getSiteUrl(),
   ]);
 
   const discount =
@@ -64,6 +96,35 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-6 lg:px-6">
+      {/* Fiche produit exploitable en resultat enrichi : prix, stock, avis. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd(
+            productSchema({
+              siteUrl,
+              product,
+              rating: product.rating,
+              reviewCount: product.reviewCount,
+              reviews: product.reviews,
+            })
+          ),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd(
+            breadcrumbSchema(siteUrl, [
+              { name: "Accueil", path: "/" },
+              { name: "Catalogue", path: "/produits" },
+              { name: product.category.name, path: `/produits?categorie=${product.category.slug}` },
+              { name: product.title, path: `/produits/${product.slug}` },
+            ])
+          ),
+        }}
+      />
+
       <nav aria-label="Fil d'Ariane" className="flex flex-wrap items-center gap-1.5 text-xs text-muted-2">
         <Link href="/" className="transition-colors hover:text-foreground">
           Accueil

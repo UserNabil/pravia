@@ -55,6 +55,7 @@ export function ProductGallery({
           alt={images[active].alt || title}
           width={720}
           height={720}
+          sizes="(max-width: 1024px) 90vw, 45vw"
           priority
           className="mx-auto aspect-square w-full max-w-md object-contain"
         />

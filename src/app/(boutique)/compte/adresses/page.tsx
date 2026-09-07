@@ -5,7 +5,10 @@ import { requireUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { title: "Mes adresses" };
+export const metadata: Metadata = {
+  title: "Mes adresses",
+  robots: { index: false, follow: false },
+};
 
 export default async function AddressesPage() {
   const user = await requireUser();

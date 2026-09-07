@@ -17,6 +17,9 @@ export type TaxonomyRow = {
   accent?: string;
   description?: string | null;
   sortOrder?: number;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  noIndex?: boolean;
   productCount: number;
 };
 

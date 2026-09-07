@@ -2,13 +2,17 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { CreditCard, Mail, Phone, RotateCcw, ShieldCheck, Store, Truck } from "lucide-react";
 import { db } from "@/lib/db";
+import { buildPageMetadata, faqSchema, jsonLd } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Centre d'aide",
-  description: "Livraison, retours, garanties et espace vendeur : toutes les reponses.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata("/aide", {
+    title: "Centre d'aide - livraison, retours et garanties",
+    description:
+      "Delais de livraison, retours gratuits sous 30 jours, garanties jusqu'a 24 mois, moyens de paiement et espace vendeur : toutes les reponses.",
+  });
+}
 
 const SECTIONS = [
   {
@@ -110,8 +114,16 @@ export default async function HelpPage() {
   });
   const map = new Map(settings.map((row) => [row.key, row.value]));
 
+  const faqEntries = SECTIONS.flatMap((section) =>
+    section.items.map(([question, answer]) => ({ question, answer }))
+  );
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 lg:px-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(faqSchema(faqEntries)) }}
+      />
       <div className="text-center">
         <h1 className="text-3xl font-extrabold tracking-tight">Centre d&apos;aide</h1>
         <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-muted">

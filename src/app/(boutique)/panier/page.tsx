@@ -9,7 +9,10 @@ import { FREE_SHIPPING_THRESHOLD, SHIPPING_FLAT_RATE, VAT_RATE } from "@/lib/con
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { title: "Mon panier" };
+export const metadata: Metadata = {
+  title: "Mon panier",
+  robots: { index: false, follow: false },
+};
 
 export default async function CartPage() {
   const user = await getCurrentUser();

@@ -11,10 +11,12 @@ import {
   Menu,
   MessageSquareText,
   Package,
+  Search,
   Settings,
   ShoppingCart,
   Store,
   Tags,
+  TrendingUp,
   Users,
   X,
 } from "lucide-react";
@@ -46,6 +48,13 @@ const SECTIONS = [
     links: [
       { href: "/admin/commandes", label: "Commandes", Icon: ShoppingCart },
       { href: "/admin/clients", label: "Clients", Icon: Users },
+    ],
+  },
+  {
+    title: "Visibilite",
+    links: [
+      { href: "/admin/seo", label: "Referencement", Icon: TrendingUp },
+      { href: "/admin/recherche", label: "Recherche interne", Icon: Search },
     ],
   },
   {

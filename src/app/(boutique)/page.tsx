@@ -7,8 +7,17 @@ import { getRatings } from "@/lib/queries";
 import { ProductCard } from "@/components/product-card";
 import { CategoryIcon } from "@/components/category-icon";
 import { formatPrice, formatNumber } from "@/lib/format";
+import { buildPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata() {
+  return buildPageMetadata("/", {
+    title: "Materiel technologique neuf et reconditionne",
+    description:
+      "Smartphones, ordinateurs, audio, gaming et composants selectionnes. Garantie jusqu'a 24 mois, livraison offerte des 150 EUR, retours gratuits sous 30 jours.",
+  }).then((metadata) => ({ ...metadata, title: { absolute: metadata.title as string } }));
+}
 
 const PRODUCT_INCLUDE = {
   brand: { select: { name: true, slug: true } },
@@ -115,6 +124,7 @@ export default async function HomePage() {
                   alt={hero.title}
                   width={420}
                   height={420}
+                  sizes="(max-width: 1024px) 40vw, 19rem"
                   priority
                   className="w-full max-w-[16rem] object-contain drop-shadow-2xl transition-transform duration-500 group-hover:-translate-y-2 lg:max-w-[19rem]"
                 />

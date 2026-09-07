@@ -51,10 +51,68 @@ try {
   const filtered = await page.locator("article").count();
   check("Le filtre reduit les resultats", filtered > 0 && filtered <= cardCount, `${filtered} vignettes`);
 
-  // Recherche
+  /* ------------------------------------------------------------ recherche */
   await page.goto(`${BASE}/produits?q=macbook`, { waitUntil: "networkidle" });
   const searchCount = await page.locator("article").count();
   check("Recherche texte fonctionne", searchCount > 0, `${searchCount} resultats pour "macbook"`);
+
+  // L'index est normalise : accents et majuscules ne doivent rien changer.
+  await page.goto(`${BASE}/produits?q=ECRAN`, { waitUntil: "networkidle" });
+  const upper = await page.locator("article").count();
+  await page.goto(`${BASE}/produits?q=écran`, { waitUntil: "networkidle" });
+  const accented = await page.locator("article").count();
+  check(
+    "Recherche insensible a la casse et aux accents",
+    upper > 0 && upper === accented,
+    `"ECRAN" ${upper} / "écran" ${accented}`
+  );
+
+  // Le premier resultat doit etre pertinent, pas seulement present.
+  await page.goto(`${BASE}/produits?q=galaxy s23 ultra`, { waitUntil: "networkidle" });
+  // Le lien de la vignette porte le titre en aria-label : plus stable que le texte.
+  const firstTitle =
+    (await page.locator("article a[aria-label]").first().getAttribute("aria-label")) ?? "";
+  check(
+    "Classement par pertinence",
+    firstTitle.toLowerCase().includes("s23 ultra"),
+    `1er resultat : ${firstTitle}`
+  );
+
+  // Synonyme applique terme a terme.
+  await page.goto(`${BASE}/produits?q=telephone pliable`, { waitUntil: "networkidle" });
+  const synonymCount = await page.locator("article").count();
+  check("Synonymes appliques", synonymCount > 0, `${synonymCount} resultats pour "telephone pliable"`);
+
+  // Aucune reponse : la page doit proposer des alternatives.
+  await page.goto(`${BASE}/produits?q=zzzzz iphone`, { waitUntil: "networkidle" });
+  const hasSuggestions = await page
+    .getByText("Ces produits pourraient vous interesser")
+    .isVisible()
+    .catch(() => false);
+  check("Suggestions en cas de recherche infructueuse", hasSuggestions);
+
+  // Autocompletion : l'API doit repondre et proposer des produits.
+  const suggestResponse = await page.evaluate(async (base) => {
+    const res = await fetch(`${base}/api/recherche?q=iphone`);
+    return res.ok ? await res.json() : null;
+  }, BASE);
+  check(
+    "Autocompletion renvoie des produits",
+    (suggestResponse?.products?.length ?? 0) > 0,
+    `${suggestResponse?.products?.length ?? 0} suggestions`
+  );
+
+  // Le panneau de suggestions doit s'afficher a la frappe.
+  await page.goto(`${BASE}/produits`, { waitUntil: "networkidle" });
+  const searchInput = page.getByPlaceholder("Rechercher un produit...").first();
+  await searchInput.click();
+  await searchInput.type("ipad", { delay: 60 });
+  await page.waitForTimeout(1200);
+  const panelVisible = await page
+    .getByText("Voir tous les resultats pour")
+    .isVisible()
+    .catch(() => false);
+  check("Panneau d'autocompletion affiche", panelVisible);
 
   /* ---------------------------------------------------------- connexion */
   await page.goto(`${BASE}/connexion`, { waitUntil: "networkidle" });
@@ -117,6 +175,8 @@ try {
     ["Clients", "/admin/clients"],
     ["Avis", "/admin/avis"],
     ["Statistiques", "/admin/statistiques"],
+    ["Referencement", "/admin/seo"],
+    ["Recherche interne", "/admin/recherche"],
     ["Reglages", "/admin/reglages"],
   ]) {
     const response = await page.goto(`${BASE}${route}`, { waitUntil: "networkidle" });

@@ -7,6 +7,8 @@ import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "../src/generated/prisma/client.js";
 import { writeDevice, type DeviceKind, type ScreenPalette } from "../scripts/gen-images.mjs";
 import bcrypt from "bcryptjs";
+import { buildSearchText } from "../src/lib/search.js";
+import { EXTRA_DESCRIPTIONS } from "./descriptions.js";
 
 for (const file of [".env.local", ".env"]) {
   if (fs.existsSync(file)) process.loadEnvFile(file);
@@ -35,15 +37,96 @@ const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
 /* ------------------------------------------------------------------ donnees */
 
 const CATEGORIES = [
-  { name: "Smartphones", slug: "smartphones", icon: "smartphone", sortOrder: 1, description: "Les derniers flagships et les meilleurs rapports qualite-prix." },
-  { name: "Ordinateurs portables", slug: "ordinateurs-portables", icon: "laptop", sortOrder: 2, description: "Ultrabooks, stations de travail et portables gaming." },
-  { name: "Tablettes", slug: "tablettes", icon: "tablet", sortOrder: 3, description: "Pour creer, lire et travailler en mobilite." },
-  { name: "Audio", slug: "audio", icon: "headphones", sortOrder: 4, description: "Casques, ecouteurs et enceintes haute fidelite." },
-  { name: "Montres connectees", slug: "montres-connectees", icon: "watch", sortOrder: 5, description: "Sante, sport et notifications au poignet." },
-  { name: "Gaming", slug: "gaming", icon: "gamepad-2", sortOrder: 6, description: "Consoles, manettes et peripheriques de competition." },
-  { name: "Photo & Video", slug: "photo-video", icon: "camera", sortOrder: 7, description: "Hybrides, action cams et drones." },
-  { name: "Composants", slug: "composants", icon: "cpu", sortOrder: 8, description: "Cartes graphiques et pieces pour monter sa machine." },
-  { name: "Ecrans & Peripheriques", slug: "ecrans-peripheriques", icon: "monitor", sortOrder: 9, description: "Moniteurs, claviers et souris." },
+  {
+    name: "Smartphones",
+    slug: "smartphones",
+    icon: "smartphone",
+    sortOrder: 1,
+    description: "Les derniers flagships et les meilleurs rapports qualite-prix.",
+    metaTitle: "Smartphones neufs et reconditionnes",
+    metaDescription:
+      "Comparez les smartphones Apple, Samsung, Xiaomi et Google : fiches detaillees, avis verifies et garantie jusqu'a 24 mois. Livraison offerte des 150 EUR.",
+  },
+  {
+    name: "Ordinateurs portables",
+    slug: "ordinateurs-portables",
+    icon: "laptop",
+    sortOrder: 2,
+    description: "Ultrabooks, stations de travail et portables gaming.",
+    metaTitle: "Ordinateurs portables : ultrabooks, gaming et pro",
+    metaDescription:
+      "Ultrabooks, stations de travail et portables gaming selectionnes. Caracteristiques completes, conseils d'usage et garantie constructeur incluse.",
+  },
+  {
+    name: "Tablettes",
+    slug: "tablettes",
+    icon: "tablet",
+    sortOrder: 3,
+    description: "Pour creer, lire et travailler en mobilite.",
+    metaTitle: "Tablettes tactiles Apple, Samsung et Xiaomi",
+    metaDescription:
+      "iPad, Galaxy Tab et alternatives Android pour creer, lire et travailler en mobilite. Comparatif des formats, des stylets et des autonomies.",
+  },
+  {
+    name: "Audio",
+    slug: "audio",
+    icon: "headphones",
+    sortOrder: 4,
+    description: "Casques, ecouteurs et enceintes haute fidelite.",
+    metaTitle: "Casques, ecouteurs et enceintes sans fil",
+    metaDescription:
+      "Reduction de bruit active, autonomie et qualite sonore : notre selection de casques, ecouteurs et enceintes Bluetooth, testes et garantis 24 mois.",
+  },
+  {
+    name: "Montres connectees",
+    slug: "montres-connectees",
+    icon: "watch",
+    sortOrder: 5,
+    description: "Sante, sport et notifications au poignet.",
+    metaTitle: "Montres connectees sport et sante",
+    metaDescription:
+      "Suivi cardiaque, sommeil et notifications au poignet. Apple Watch, Galaxy Watch et Pixel Watch avec garantie et retours gratuits sous 30 jours.",
+  },
+  {
+    name: "Gaming",
+    slug: "gaming",
+    icon: "gamepad-2",
+    sortOrder: 6,
+    description: "Consoles, manettes et peripheriques de competition.",
+    metaTitle: "Consoles, manettes et peripheriques gaming",
+    metaDescription:
+      "PlayStation, Xbox, Nintendo Switch et peripheriques esport. Stock verifie, expedition sous 24 h et garantie constructeur de 24 mois.",
+  },
+  {
+    name: "Photo & Video",
+    slug: "photo-video",
+    icon: "camera",
+    sortOrder: 7,
+    description: "Hybrides, action cams et drones.",
+    metaTitle: "Appareils photo hybrides, action cams et drones",
+    metaDescription:
+      "Boitiers plein format, action cams etanches et drones de moins de 250 g. Fiches techniques completes et conseils de prise en main.",
+  },
+  {
+    name: "Composants",
+    slug: "composants",
+    icon: "cpu",
+    sortOrder: 8,
+    description: "Cartes graphiques et pieces pour monter sa machine.",
+    metaTitle: "Cartes graphiques et composants PC",
+    metaDescription:
+      "GeForce RTX et composants pour monter ou faire evoluer sa machine. Performances reelles en 1440p et 4K detaillees sur chaque fiche produit.",
+  },
+  {
+    name: "Ecrans & Peripheriques",
+    slug: "ecrans-peripheriques",
+    icon: "monitor",
+    sortOrder: 9,
+    description: "Moniteurs, claviers et souris.",
+    metaTitle: "Ecrans, claviers et souris",
+    metaDescription:
+      "Moniteurs 4K et OLED haute frequence, claviers et souris pour le travail comme pour le jeu. Ergonomie, connectique et garanties detaillees.",
+  },
 ];
 
 const BRANDS = [
@@ -1200,16 +1283,20 @@ async function main() {
       images.push({ url: altUrl, alt: `${p.title} - dos`, sortOrder: 1 });
     }
 
+    const sku = `PRV-${String(index + 1).padStart(4, "0")}`;
+    const extra = EXTRA_DESCRIPTIONS[p.slug];
+    const description = extra ? `${p.description}\n\n${extra}` : p.description;
+
     const product = await db.product.create({
       data: {
         slug: p.slug,
         title: p.title,
         subtitle: p.subtitle,
-        description: p.description,
+        description,
         price: p.price,
         compareAtPrice: p.compareAtPrice ?? null,
         stock: p.stock,
-        sku: `PRV-${String(index + 1).padStart(4, "0")}`,
+        sku,
         condition: p.condition ?? "NEW",
         minOrder: p.minOrder ?? 1,
         tradeAssurance: p.tradeAssurance ?? false,
@@ -1223,6 +1310,18 @@ async function main() {
         warrantyMonths: p.condition === "SECOND_HAND" ? 6 : 24,
         categoryId: categories.get(p.category)!,
         brandId: brands.get(p.brand)!,
+        searchText: buildSearchText({
+          title: p.title,
+          subtitle: p.subtitle,
+          description,
+          sku,
+          storage: p.storage,
+          color: p.color,
+          carrier: p.carrier,
+          brand: BRANDS.find((b) => b.slug === p.brand)!.name,
+          category: CATEGORIES.find((c) => c.slug === p.category)!.name,
+          specs: p.specs.map(([label, value]) => ({ label, value })),
+        }),
         createdAt: daysAgo(between(2, 180)),
         images: { create: images },
         specs: {
@@ -1378,6 +1477,95 @@ async function main() {
       { key: "banner.text", value: "Livraison offerte des 150 EUR - Retours gratuits sous 30 jours" },
     ],
   });
+
+  console.log("Referencement et recherche...");
+  await db.seoPage.deleteMany();
+  await db.searchSynonym.deleteMany();
+  await db.searchQuery.deleteMany();
+
+  await db.seoPage.createMany({
+    data: [
+      {
+        path: "/",
+        label: "Accueil",
+        metaTitle: "Pravia - Materiel technologique neuf et reconditionne",
+        metaDescription:
+          "40 references high-tech selectionnees : smartphones, ordinateurs, audio, gaming et composants. Garantie jusqu'a 24 mois, livraison offerte des 150 EUR, retours gratuits 30 jours.",
+        changeFrequency: "daily",
+        priority: 1,
+      },
+      {
+        path: "/produits",
+        label: "Catalogue",
+        metaTitle: "Catalogue high-tech - smartphones, ordinateurs, gaming",
+        metaDescription:
+          "Parcourez tout le catalogue Pravia et filtrez par categorie, marque, etat et budget. Produits neufs et reconditionnes, expedies sous 24 h.",
+        changeFrequency: "daily",
+        priority: 0.9,
+      },
+      {
+        path: "/aide",
+        label: "Centre d'aide",
+        metaTitle: "Centre d'aide - livraison, retours et garanties",
+        metaDescription:
+          "Delais de livraison, retours gratuits sous 30 jours, garanties jusqu'a 24 mois, moyens de paiement et espace vendeur : toutes les reponses.",
+        changeFrequency: "monthly",
+        priority: 0.6,
+      },
+      {
+        path: "/connexion",
+        label: "Connexion",
+        metaTitle: "Connexion a votre compte",
+        metaDescription: "Accedez a vos commandes, vos favoris et votre panier Pravia.",
+        noIndex: true,
+        inSitemap: false,
+        priority: 0.1,
+      },
+      {
+        path: "/inscription",
+        label: "Inscription",
+        metaTitle: "Creer un compte Pravia",
+        metaDescription:
+          "Creez votre compte pour suivre vos commandes et retrouver votre panier sur tous vos appareils.",
+        changeFrequency: "yearly",
+        priority: 0.3,
+      },
+    ],
+  });
+
+  await db.searchSynonym.createMany({
+    data: [
+      { term: "pc portable", targets: "ordinateur portable" },
+      { term: "laptop", targets: "ordinateur portable" },
+      { term: "portable", targets: "ordinateur portable" },
+      { term: "telephone", targets: "smartphone" },
+      { term: "mobile", targets: "smartphone" },
+      { term: "casque", targets: "audio casque" },
+      { term: "ecouteurs", targets: "audio ecouteurs" },
+      { term: "carte graphique", targets: "geforce rtx" },
+      { term: "console", targets: "gaming console playstation xbox nintendo" },
+      { term: "montre", targets: "montres connectees watch" },
+      { term: "apple", targets: "apple" },
+    ],
+  });
+
+  // Quelques recherches passees pour que les statistiques ne soient pas vides.
+  const SAMPLE_SEARCHES: [string, number][] = [
+    ["iphone", 5], ["iphone", 5], ["iphone", 5], ["macbook", 3], ["macbook", 3],
+    ["samsung", 6], ["casque bluetooth", 0], ["rtx 4090", 0], ["ipad", 2],
+    ["playstation", 1], ["pc portable gamer", 2], ["montre connectee", 3],
+    ["chargeur usb c", 0], ["ecran 4k", 2], ["xiaomi", 2], ["airpods", 1],
+  ];
+  for (const [term, results] of SAMPLE_SEARCHES) {
+    await db.searchQuery.create({
+      data: {
+        term,
+        normalized: term,
+        results,
+        createdAt: daysAgo(between(0, 25)),
+      },
+    });
+  }
 
   const counts = {
     categories: CATEGORIES.length,
