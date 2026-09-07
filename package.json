@@ -15,10 +15,17 @@
     "setup": "prisma generate && prisma db push && npm run db:seed",
     "e2e": "node scripts/e2e.mjs",
     "seo": "node scripts/seo-check.mjs",
-    "verify": "node scripts/e2e.mjs && node scripts/seo-check.mjs"
+    "verify": "node scripts/e2e.mjs && node scripts/seo-check.mjs",
+    "schema:sqlserver": "node scripts/schema-sqlserver.mjs",
+    "build:iis": "npm run sql:all && prisma generate --schema prisma/schema.sqlserver.prisma && next build && node scripts/package-iis.mjs && prisma generate",
+    "predev": "prisma generate",
+    "sql:schema": "npm run schema:sqlserver && prisma migrate diff --from-empty --to-schema prisma/schema.sqlserver.prisma --script -o dist-sql/pravia-schema.sql",
+    "sql:data": "prisma generate && tsx scripts/export-sqlserver.mjs",
+    "sql:all": "npm run sql:schema && npm run sql:data"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.10.0",
+    "@prisma/adapter-mssql": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.12",

@@ -6,6 +6,9 @@ import { Check, Loader2 } from "lucide-react";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/format";
 
+/** Resultat facultatif d'une action : permet d'afficher ce qui s'est reellement passe. */
+export type ActionOutcome = void | { message?: string; tone?: "success" | "error" };
+
 /** Bouton declenchant une action serveur apres confirmation explicite. */
 export function ConfirmButton({
   action,
@@ -14,7 +17,7 @@ export function ConfirmButton({
   className,
   successMessage,
 }: {
-  action: () => Promise<void>;
+  action: () => Promise<ActionOutcome>;
   confirmLabel: string;
   children: React.ReactNode;
   className?: string;
@@ -33,8 +36,11 @@ export function ConfirmButton({
           disabled={pending}
           onClick={() =>
             startTransition(async () => {
-              await action();
-              if (successMessage) toast(successMessage, "success");
+              const outcome = await action();
+              // L'action peut expliquer ce qu'elle a fait ; sinon on retombe
+              // sur le message generique du bouton.
+              if (outcome?.message) toast(outcome.message, outcome.tone ?? "success");
+              else if (successMessage) toast(successMessage, "success");
               setArmed(false);
               router.refresh();
             })

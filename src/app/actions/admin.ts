@@ -223,9 +223,29 @@ export async function toggleProductActiveAction(productId: string) {
   refreshAdmin("/produits");
 }
 
+/**
+ * Supprime un produit et tout ce qui en depend.
+ *
+ * Le nettoyage est explicite plutot que delegue aux cascades : SQL Server
+ * interdit plusieurs chemins de cascade vers une meme table, ces relations y
+ * sont donc en NoAction. Faire le menage ici garantit un comportement
+ * identique quel que soit le moteur.
+ */
 export async function deleteProductAction(productId: string) {
   await guard();
-  await db.product.delete({ where: { id: productId } });
+
+  await db.$transaction(async (tx) => {
+    await tx.cartItem.deleteMany({ where: { productId } });
+    await tx.wishlistItem.deleteMany({ where: { productId } });
+    await tx.review.deleteMany({ where: { productId } });
+    await tx.productImage.deleteMany({ where: { productId } });
+    await tx.productSpec.deleteMany({ where: { productId } });
+    // Les lignes de commande sont conservees : elles portent un instantane du
+    // produit (titre, prix, visuel) et constituent l'historique de facturation.
+    await tx.orderItem.updateMany({ where: { productId }, data: { productId: null } });
+    await tx.product.delete({ where: { id: productId } });
+  });
+
   refreshAdmin("/produits");
   redirect("/admin/produits?supprime=1");
 }
@@ -401,11 +421,45 @@ export async function createUserAction(_prev: AdminState, formData: FormData): P
   return { success: "Compte cree." };
 }
 
-export async function deleteUserAction(userId: string) {
+/** Supprime un compte et ses donnees, en conservant l'historique de commandes. */
+export async function deleteUserAction(
+  userId: string
+): Promise<{ message: string; tone: "success" | "error" }> {
   const admin = await guard();
-  if (userId === admin.id) return;
-  await db.user.delete({ where: { id: userId } });
+  // Un administrateur ne peut pas supprimer son propre compte.
+  if (userId === admin.id) {
+    return { message: "Vous ne pouvez pas supprimer votre propre compte.", tone: "error" };
+  }
+
+  const orderCount = await db.order.count({ where: { userId } });
+  if (orderCount > 0) {
+    // Un compte ayant commande ne peut pas disparaitre sans emporter des pieces
+    // comptables : on le desactive plutot, en le retrogradant et en le rendant
+    // inutilisable pour la connexion.
+    await db.user.update({
+      where: { id: userId },
+      data: {
+        role: "CUSTOMER",
+        passwordHash: await hashPassword(crypto.randomUUID()),
+      },
+    });
+    refreshAdmin();
+    return {
+      message: `Compte desactive : ses ${orderCount} commande(s) doivent etre conservees.`,
+      tone: "success",
+    };
+  }
+
+  await db.$transaction(async (tx) => {
+    await tx.cartItem.deleteMany({ where: { userId } });
+    await tx.wishlistItem.deleteMany({ where: { userId } });
+    await tx.review.deleteMany({ where: { userId } });
+    await tx.address.deleteMany({ where: { userId } });
+    await tx.user.delete({ where: { id: userId } });
+  });
+
   refreshAdmin();
+  return { message: "Compte supprime.", tone: "success" };
 }
 
 /* ------------------------------------------------------------------ reglages */

@@ -20,6 +20,9 @@ npm run dev     # http://localhost:3000
 
 C'est tout : aucune base externe à installer, aucun service tiers à configurer.
 
+Pour la mise en production (IIS, SQL Server, Cloudflare), voir
+**[DEPLOIEMENT.md](DEPLOIEMENT.md)**.
+
 ### Comptes de démonstration
 
 | Rôle          | Adresse                | Mot de passe |
@@ -109,11 +112,12 @@ défilants horizontalement, grilles de 2 à 4 colonnes selon la largeur.
 | --- | --- | --- |
 | Framework | **Next.js 16** (App Router) | Server Components et Server Actions : pas d'API REST à maintenir en parallèle |
 | UI | **React 19**, **Tailwind CSS 4** | Thème piloté par variables CSS en OKLCH, configuration directement dans le CSS |
-| Base de données | **SQLite** via **Prisma 7** | Zéro service à installer ; migration vers PostgreSQL = un changement de `provider` |
+| Base de données | **Prisma 7** — SQLite en dev, **SQL Server** en production | Zéro service à installer pour développer ; le schéma SQL Server est dérivé automatiquement |
 | Authentification | **jose** (JWT) + **bcryptjs** | Session en cookie `httpOnly`, sans dépendance externe |
 | Validation | **zod** | Toutes les entrées serveur sont validées avant écriture |
 | Icônes | **lucide-react** | |
 | Tests | **Playwright** | Parcours de bout en bout scripté |
+| Production | **IIS** + HttpPlatformHandler, **SQL Server**, **Cloudflare Tunnel** | Voir [DEPLOIEMENT.md](DEPLOIEMENT.md) |
 
 ### Pourquoi pas WordPress / WooCommerce
 
@@ -128,11 +132,15 @@ sur mesure et un back-office `wp-admin` qu'on ne maîtrise pas. Ici, l'ensemble 
 
 ```
 prisma/
-  schema.prisma          Modèle de données (15 tables)
+  schema.prisma          Modèle de données (16 tables), source unique
+  schema.sqlserver.prisma  Variante SQL Server, générée
   descriptions.ts        Second paragraphe éditorial de chaque fiche
   seed.ts                Jeu de démonstration, idempotent
 scripts/
   gen-images.mjs         Génère les visuels produits en SVG
+  schema-sqlserver.mjs   Dérive le schéma SQL Server du schéma de référence
+  export-sqlserver.mjs   Exporte les données SQLite en T-SQL
+  package-iis.mjs        Assemble le paquet de déploiement IIS
   e2e.mjs                Parcours de bout en bout (31 vérifications)
   seo-check.mjs          Audit de référencement sur le site rendu (34 vérifications)
   shoot.mjs              Capture d'écran ponctuelle
@@ -180,27 +188,57 @@ npm run seo        # audit de référencement (le serveur doit tourner)
 npm run verify     # les deux à la suite
 ```
 
+Déploiement (voir [DEPLOIEMENT.md](DEPLOIEMENT.md)) :
+
+```bash
+npm run schema:sqlserver  # dérive prisma/schema.sqlserver.prisma
+npm run sql:schema        # structure T-SQL -> dist-sql/pravia-schema.sql
+npm run sql:data          # données T-SQL   -> dist-sql/pravia-data.sql
+npm run sql:all           # les deux
+npm run build:iis         # paquet IIS complet -> dist-iis/
+```
+
 ---
 
 ## Passer en production
 
-1. **Adresse du site** — première chose à faire : renseigner le domaine réel dans
-   `/admin/seo`. Tant qu'il pointe sur `localhost`, les URL canoniques, le sitemap et les
-   images sociales sont inexploitables — le diagnostic de la page le signale en erreur.
-   Le domaine peut aussi être fixé par la variable `NEXT_PUBLIC_SITE_URL`.
-2. **Base de données** — remplacer `provider = "sqlite"` par `postgresql` dans
-   `prisma/schema.prisma`, installer `@prisma/adapter-pg`, adapter `src/lib/db.ts`, puis
-   `npx prisma migrate deploy`.
-3. **Secret de session** — renseigner un `AUTH_SECRET` long et aléatoire dans l'environnement.
-   Les cookies passent automatiquement en `secure` hors développement.
-4. **Paiement** — le passage en caisse valide la commande sans débit réel. Brancher un
-   prestataire (Stripe, par exemple) dans `placeOrderAction`, à l'endroit signalé
-   (`src/app/actions/orders.ts`), et ne créer la commande qu'après confirmation du paiement.
-5. **Images produits** — le champ visuel accepte une URL absolue ; ajouter le domaine
-   correspondant dans `images.remotePatterns` de `next.config.ts` si l'on quitte le dossier
-   `public`.
-6. **Search Console** — coller le code de vérification dans `/admin/seo`, puis soumettre
-   `/sitemap.xml`. Vérifier au passage que l'indexation est bien autorisée.
+Le guide complet est dans **[DEPLOIEMENT.md](DEPLOIEMENT.md)** : prérequis, préparation de
+SQL Server, installation IIS, tunnel Cloudflare, mise à jour et dépannage.
+
+En résumé, tout se fait sur le serveur, à partir d'un clone du dépôt :
+
+```powershell
+git clone https://github.com/UserNabil/pravia.git; cd pravia; npm install
+npm run setup && npm run sql:all      # jeu de données puis scripts SQL Server
+cd deploy
+.\1-configurer-sqlserver.ps1 -MotDePasse "..."   # TCP/IP, auth mixte, compte applicatif
+cd ..; npm run build:iis              # paquet de production
+cd deploy
+.\2-installer-iis.ps1                 # pool, site, droits
+.\3-cloudflare-tunnel.ps1 -InstallerService
+```
+
+Trois points à ne pas manquer :
+
+1. **L'adresse du site** doit être renseignée dans `/admin/seo` une fois en ligne. Tant
+   qu'elle pointe ailleurs, canoniques, sitemap et aperçus sociaux sont inexploitables ;
+   le diagnostic de la page le signale en erreur.
+2. **Le paiement est simulé** : la commande est validée sans débit réel. Le point
+   d'accroche pour un prestataire est signalé dans `src/app/actions/orders.ts`.
+3. **Changez le mot de passe administrateur** avant toute présentation.
+
+### Bases de données prises en charge
+
+| Environnement | Moteur | Configuration |
+| --- | --- | --- |
+| Développement | SQLite | `DATABASE_PROVIDER="sqlite"` (par défaut) |
+| Production | SQL Server 2017+ | `DATABASE_PROVIDER="sqlserver"` |
+
+Le schéma SQL Server est **généré** depuis `prisma/schema.prisma` par
+`npm run schema:sqlserver` : il n'y a jamais deux schémas à maintenir. Les différences
+imposées par SQL Server (texte long en `NVARCHAR(MAX)`, colonnes de clé dimensionnées,
+cascades en doublon converties) sont appliquées et documentées dans
+`scripts/schema-sqlserver.mjs`.
 
 ## Licence
 

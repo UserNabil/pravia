@@ -24,16 +24,31 @@ export const SEO_DEFAULTS = {
 
 export type SeoSettings = Record<keyof typeof SEO_DEFAULTS, string>;
 
-/** Lit les reglages SEO en base, completes par les valeurs par defaut. */
+/**
+ * Lit les reglages SEO en base, completes par les valeurs par defaut.
+ *
+ * Ces reglages sont de la configuration d'affichage : si la base est
+ * injoignable, on retombe sur les valeurs par defaut plutot que de faire
+ * echouer le rendu. C'est aussi ce qui permet de compiler le paquet de
+ * deploiement sur une machine sans acces a la base de production.
+ */
 export async function getSeoSettings(): Promise<SeoSettings> {
-  const rows = await db.setting.findMany({
-    where: { key: { in: Object.keys(SEO_DEFAULTS) } },
-  });
-
   const settings = { ...SEO_DEFAULTS } as SeoSettings;
-  for (const row of rows) {
-    if (row.value.trim()) settings[row.key as keyof SeoSettings] = row.value;
+
+  try {
+    const rows = await db.setting.findMany({
+      where: { key: { in: Object.keys(SEO_DEFAULTS) } },
+    });
+    for (const row of rows) {
+      if (row.value.trim()) settings[row.key as keyof SeoSettings] = row.value;
+    }
+  } catch (error) {
+    console.warn(
+      "[seo] reglages illisibles, valeurs par defaut utilisees :",
+      error instanceof Error ? error.message : error
+    );
   }
+
   return settings;
 }
 

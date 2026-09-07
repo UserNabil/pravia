@@ -29,3 +29,7 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Artefacts de deploiement
+dist-iis
+dist-sql

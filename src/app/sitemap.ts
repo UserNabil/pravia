@@ -2,8 +2,9 @@ import type { MetadataRoute } from "next";
 import { db } from "@/lib/db";
 import { getSeoSettings, absoluteUrl } from "@/lib/seo";
 
-/** Le sitemap est reconstruit toutes les heures a partir du catalogue en base. */
-export const revalidate = 3600;
+// Genere a la demande : le contenu depend de la base, qui n'est pas
+// joignable au moment de la compilation du paquet de deploiement.
+export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const settings = await getSeoSettings();

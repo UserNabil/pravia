@@ -1,5 +1,5 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
@@ -29,6 +29,19 @@ export async function verifyPassword(plain: string, hash: string): Promise<boole
   return bcrypt.compare(plain, hash);
 }
 
+/**
+ * Le cookie n'est marque Secure que si la requete est reellement arrivee en
+ * HTTPS. Derriere un proxy comme Cloudflare, le protocole vu par le navigateur
+ * figure dans x-forwarded-proto ; un acces direct en HTTP sur le reseau local
+ * reste ainsi utilisable pour la recette, sans jamais degrader la production.
+ */
+async function requestIsSecure(): Promise<boolean> {
+  const store = await headers();
+  const forwarded = store.get("x-forwarded-proto");
+  if (forwarded) return forwarded.split(",")[0].trim() === "https";
+  return process.env.NODE_ENV === "production";
+}
+
 export async function createSession(userId: string): Promise<void> {
   const token = await new SignJWT({ sub: userId })
     .setProtectedHeader({ alg: "HS256" })
@@ -40,7 +53,7 @@ export async function createSession(userId: string): Promise<void> {
   store.set(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: await requestIsSecure(),
     path: "/",
     maxAge: MAX_AGE,
   });

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getSeoSettings } from "@/lib/seo";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 /** Chemins sans valeur pour un moteur : espace client, tunnel d'achat, back-office. */
 const PRIVATE_PATHS = [

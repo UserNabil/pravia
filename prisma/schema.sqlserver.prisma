@@ -1,0 +1,310 @@
+// FICHIER GENERE - NE PAS MODIFIER A LA MAIN
+// Source : prisma/schema.prisma
+// Regenerer avec : npm run schema:sqlserver
+//
+// Differences appliquees pour SQL Server :
+//   - fournisseur sqlserver
+//   - colonnes de texte long en NVARCHAR(MAX)
+//   - index sur searchText retire (inutilisable par un LIKE '%...%')
+//   - cascades en doublon converties en NoAction, nettoyage fait par le code
+
+// Pravia - Marketplace de materiel technologique
+// Schema de donnees complet : catalogue, comptes, panier, commandes, avis, CMS.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlserver"
+}
+
+// ---------------------------------------------------------------- Comptes
+
+model User {
+  id           String   @id @default(cuid()) @db.NVarChar(36)
+  email        String   @unique @db.NVarChar(320)
+  passwordHash String
+  name         String
+  role         String   @default("CUSTOMER") @db.NVarChar(200) // CUSTOMER | ADMIN
+  avatarColor  String   @default("#6366f1")
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  addresses Address[]
+  cartItems CartItem[]
+  orders    Order[]
+  reviews   Review[]
+  wishlist  WishlistItem[]
+
+  @@index([role])
+}
+
+model Address {
+  id        String  @id @default(cuid()) @db.NVarChar(36)
+  userId    String @db.NVarChar(36)
+  label     String  @default("Domicile")
+  fullName  String
+  line1     String
+  line2     String?
+  city      String
+  zip       String
+  country   String  @default("France")
+  phone     String?
+  isDefault Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------- Catalogue
+
+model Category {
+  id          String  @id @default(cuid()) @db.NVarChar(36)
+  name        String
+  slug        String  @unique @db.NVarChar(200)
+  icon        String  @default("package") // nom d'icone lucide
+  description String?
+  sortOrder   Int     @default(0)
+
+  metaTitle       String?
+  metaDescription String? @db.NVarChar(Max)
+  ogImage         String?
+  noIndex         Boolean @default(false)
+
+  products Product[]
+}
+
+model Brand {
+  id       String @id @default(cuid()) @db.NVarChar(36)
+  name     String
+  slug     String @unique @db.NVarChar(200)
+  accent   String @default("#64748b")
+  products Product[]
+}
+
+model Product {
+  id             String  @id @default(cuid()) @db.NVarChar(36)
+  slug           String  @unique @db.NVarChar(200)
+  title          String
+  subtitle       String?
+  description    String @db.NVarChar(Max)
+  price          Int // en centimes
+  compareAtPrice Int? // prix barre, en centimes
+  stock          Int     @default(0)
+  sku            String  @unique @db.NVarChar(200)
+  condition      String  @default("NEW") // NEW | REFURBISHED | SECOND_HAND
+  minOrder       Int     @default(1)
+  tradeAssurance Boolean @default(false)
+  readyToShip    Boolean @default(true)
+  featured       Boolean @default(false)
+  active         Boolean @default(true)
+  soldCount      Int     @default(0)
+  storage        String? // 128GB, 512GB...
+  color          String?
+  carrier        String? // T-Mobile, SM-F936U1...
+  warrantyMonths Int     @default(24)
+
+  // Referencement : vides, on retombe sur le titre et la description du produit.
+  metaTitle       String?
+  metaDescription String? @db.NVarChar(Max)
+  ogImage         String?
+  noIndex         Boolean @default(false)
+
+  // Index de recherche : titre, marque, categorie et specs normalises
+  // (minuscules, sans accents). Recalcule a chaque ecriture.
+  searchText String @default("") @db.NVarChar(Max)
+
+  categoryId String @db.NVarChar(36)
+  brandId    String @db.NVarChar(36)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  category Category       @relation(fields: [categoryId], references: [id])
+  brand    Brand          @relation(fields: [brandId], references: [id])
+  images   ProductImage[]
+  specs    ProductSpec[]
+  reviews  Review[]
+  cartItems CartItem[]
+  orderItems OrderItem[]
+  wishlist WishlistItem[]
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([active])
+}
+
+model ProductImage {
+  id        String @id @default(cuid()) @db.NVarChar(36)
+  productId String @db.NVarChar(36)
+  url       String
+  alt       String @default("")
+  sortOrder Int    @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model ProductSpec {
+  id        String @id @default(cuid()) @db.NVarChar(36)
+  productId String @db.NVarChar(36)
+  label     String
+  value     String
+  sortOrder Int    @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+// ---------------------------------------------------------------- Panier & souhaits
+
+model CartItem {
+  id        String   @id @default(cuid()) @db.NVarChar(36)
+  userId    String @db.NVarChar(36)
+  productId String @db.NVarChar(36)
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid()) @db.NVarChar(36)
+  userId    String @db.NVarChar(36)
+  productId String @db.NVarChar(36)
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------- Commandes
+
+model Order {
+  id       String @id @default(cuid()) @db.NVarChar(36)
+  number   String @unique @db.NVarChar(200)
+  userId   String @db.NVarChar(36)
+  status   String @default("PENDING") @db.NVarChar(200) // PENDING | PAID | SHIPPED | DELIVERED | CANCELLED | REFUNDED
+
+  subtotal Int
+  shipping Int
+  tax      Int
+  total    Int
+
+  paymentMethod String @default("CARD")
+
+  shipFullName String
+  shipLine1    String
+  shipLine2    String?
+  shipCity     String
+  shipZip      String
+  shipCountry  String
+  shipPhone    String?
+
+  trackingNumber String?
+  notes          String? @db.NVarChar(Max)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User        @relation(fields: [userId], references: [id])
+  items OrderItem[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id        String @id @default(cuid()) @db.NVarChar(36)
+  orderId   String @db.NVarChar(36)
+  productId String? @db.NVarChar(36)
+
+  titleSnapshot String
+  priceSnapshot Int
+  imageSnapshot String?
+  quantity      Int
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([orderId])
+}
+
+// ---------------------------------------------------------------- Avis
+
+model Review {
+  id        String   @id @default(cuid()) @db.NVarChar(36)
+  productId String @db.NVarChar(36)
+  userId    String @db.NVarChar(36)
+  rating    Int
+  title     String
+  body      String @db.NVarChar(Max)
+  status    String   @default("PUBLISHED") @db.NVarChar(200) // PENDING | PUBLISHED | REJECTED
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([productId, userId])
+  @@index([productId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------- Reglages
+
+model Setting {
+  key   String @id @db.NVarChar(200)
+  value String @db.NVarChar(Max)
+}
+
+// ---------------------------------------------------------------- Referencement
+
+/// Metadonnees des pages editoriales, editables depuis le back-office.
+/// Les produits et categories portent leurs propres champs SEO.
+model SeoPage {
+  id              String   @id @default(cuid()) @db.NVarChar(36)
+  path            String   @unique @db.NVarChar(200) // "/", "/produits", "/aide"
+  label           String
+  metaTitle       String?
+  metaDescription String? @db.NVarChar(Max)
+  ogImage         String?
+  noIndex         Boolean  @default(false)
+  changeFrequency String   @default("weekly")
+  priority        Float    @default(0.5)
+  inSitemap       Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+}
+
+// ------------------------------------------------------------------- Recherche
+
+/// Journal des recherches : alimente les statistiques du back-office et met en
+/// evidence les requetes sans resultat.
+model SearchQuery {
+  id         String   @id @default(cuid()) @db.NVarChar(36)
+  term       String
+  normalized String @db.NVarChar(200)
+  results    Int
+  createdAt  DateTime @default(now())
+
+  @@index([normalized])
+  @@index([createdAt])
+}
+
+/// Synonymes de recherche : "pc portable" doit trouver "ordinateur portable".
+model SearchSynonym {
+  id      String @id @default(cuid()) @db.NVarChar(36)
+  term    String @unique @db.NVarChar(200) // forme normalisee saisie par l'internaute
+  targets String // termes de remplacement, separes par des virgules
+}

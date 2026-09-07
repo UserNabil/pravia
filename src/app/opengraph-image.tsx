@@ -5,8 +5,8 @@ export const alt = "Pravia - La marketplace du materiel technologique";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-/** Image sociale par defaut, generee a la volee et mise en cache une heure. */
-export const revalidate = 3600;
+// Generee a la demande : le nom du site provient de la base.
+export const dynamic = "force-dynamic";
 
 export default async function Image() {
   const settings = await getSeoSettings();

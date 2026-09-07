@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getSeoSettings } from "@/lib/seo";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const settings = await getSeoSettings();
