@@ -11,6 +11,7 @@ import {
   Menu,
   MessageSquareText,
   Package,
+  KeyRound,
   Search,
   Settings,
   ShoppingCart,
@@ -55,6 +56,7 @@ const SECTIONS = [
     links: [
       { href: "/admin/seo", label: "Referencement", Icon: TrendingUp },
       { href: "/admin/recherche", label: "Recherche interne", Icon: Search },
+      { href: "/admin/connexions", label: "Connexions", Icon: KeyRound },
     ],
   },
   {

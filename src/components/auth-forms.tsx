@@ -5,7 +5,13 @@ import Link from "next/link";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { loginAction, registerAction } from "@/app/actions/auth";
 
-export function LoginForm({ redirectTo }: { redirectTo?: string }) {
+export function LoginForm({
+  redirectTo,
+  children,
+}: {
+  redirectTo?: string;
+  children?: React.ReactNode;
+}) {
   const [state, action, pending] = useActionState(loginAction, {});
 
   return (
@@ -41,6 +47,8 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
         Se connecter
       </button>
 
+      {children}
+
       <DemoAccounts />
 
       <p className="text-center text-sm text-muted-2">
@@ -53,7 +61,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
   );
 }
 
-export function RegisterForm() {
+export function RegisterForm({ children }: { children?: React.ReactNode }) {
   const [state, action, pending] = useActionState(registerAction, {});
 
   return (
@@ -106,6 +114,8 @@ export function RegisterForm() {
         {pending && <Loader2 className="size-4 animate-spin" />}
         Creer mon compte
       </button>
+
+      {children}
 
       <p className="text-center text-xs leading-relaxed text-muted-2">
         En creant un compte, vous acceptez les conditions generales et la politique de

@@ -51,8 +51,11 @@ partagent le mot de passe `demo1234`.
 - **Panier** — quantités modifiables, contrôle du stock, jauge vers la livraison offerte.
 - **Commande** — adresse pré-remplie depuis le carnet, choix du mode de paiement, décrément du
   stock et vidage du panier dans une transaction unique.
+- **Connexion** — par mot de passe, ou via **Google, Microsoft, Facebook, TikTok et Apple**.
+  Chaque fournisseur est facultatif : sans identifiants, son bouton n'apparaît pas.
+  Voir [docs/connexions-externes.md](docs/connexions-externes.md).
 - **Espace client** — tableau de bord, historique des commandes avec suivi par étapes, favoris,
-  carnet d'adresses.
+  carnet d'adresses, liaisons de connexion.
 - **Centre d'aide** (`/aide`) — livraison, retours, garanties, paiement, espace vendeur.
 
 ### Back-office (`/admin`)
@@ -77,6 +80,8 @@ Réservé aux comptes `ADMIN` ; tout accès non autorisé est redirigé.
   propre bloc SEO dans leur formulaire.
 - **Recherche interne** — requêtes les plus fréquentes, recherches sans résultat (chaque ligne
   est une vente manquée), gestion des synonymes, reconstruction de l'index.
+- **Connexions** — état des cinq fournisseurs OAuth, URL de rappel à copier, comptes liés et
+  dernières connexions.
 - **Réglages** — identité de la boutique, seuils de livraison, bandeau promotionnel.
 
 ### Référencement
@@ -114,6 +119,7 @@ défilants horizontalement, grilles de 2 à 4 colonnes selon la largeur.
 | UI | **React 19**, **Tailwind CSS 4** | Thème piloté par variables CSS en OKLCH, configuration directement dans le CSS |
 | Base de données | **Prisma 7** — SQLite en dev, **SQL Server** en production | Zéro service à installer pour développer ; le schéma SQL Server est dérivé automatiquement |
 | Authentification | **jose** (JWT) + **bcryptjs** | Session en cookie `httpOnly`, sans dépendance externe |
+| Connexions externes | OAuth 2.0 / OIDC écrit sur mesure | 5 fournisseurs, PKCE et vérification de signature, sans bibliothèque tierce |
 | Validation | **zod** | Toutes les entrées serveur sont validées avant écriture |
 | Icônes | **lucide-react** | |
 | Tests | **Playwright** | Parcours de bout en bout scripté |
@@ -132,7 +138,7 @@ sur mesure et un back-office `wp-admin` qu'on ne maîtrise pas. Ici, l'ensemble 
 
 ```
 prisma/
-  schema.prisma          Modèle de données (16 tables), source unique
+  schema.prisma          Modèle de données (17 tables), source unique
   schema.sqlserver.prisma  Variante SQL Server, générée
   descriptions.ts        Second paragraphe éditorial de chaque fiche
   seed.ts                Jeu de démonstration, idempotent
@@ -159,6 +165,9 @@ src/
     search-index.ts      Maintenance de l'index de recherche
     seo.ts               Métadonnées, canoniques et schémas JSON-LD
     seo-audit.ts         Diagnostic de référencement du back-office
+    oauth.ts             Registre des fournisseurs et flux OAuth
+    oauth-state.ts       État du flux : state, PKCE, compte en attente
+    oauth-link.ts        Rattachement d'un profil externe à un compte
     analytics.ts         Agrégats de vente pour le back-office
     format.ts            Prix, dates, slugs
 ```

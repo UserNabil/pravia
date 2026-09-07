@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Mail, MapPin, Phone, User } from "lucide-react";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { LinkedAccounts } from "@/components/linked-accounts";
+import { configuredProviders, type ProviderId } from "@/lib/oauth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +15,7 @@ export const metadata: Metadata = {
 export default async function AddressesPage() {
   const user = await requireUser();
 
-  const [addresses, profile] = await Promise.all([
+  const [addresses, profile, accounts] = await Promise.all([
     db.address.findMany({
       where: { userId: user.id },
       orderBy: [{ isDefault: "desc" }, { id: "desc" }],
@@ -22,7 +24,16 @@ export default async function AddressesPage() {
       where: { id: user.id },
       select: { name: true, email: true, phone: true, createdAt: true },
     }),
+    db.account.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, provider: true, email: true, createdAt: true },
+    }),
   ]);
+
+  const available = configuredProviders();
+  const linkedIds = new Set(accounts.map((a) => a.provider));
+  const labels = new Map(available.map((p) => [p.id as string, p.label]));
 
   return (
     <div className="space-y-5">
@@ -41,6 +52,17 @@ export default async function AddressesPage() {
           <Info Icon={Phone} label="Telephone" value={profile?.phone ?? "Non renseigne"} />
         </dl>
       </section>
+
+      <LinkedAccounts
+        linked={accounts.map((account) => ({
+          id: account.id,
+          provider: account.provider as ProviderId,
+          label: labels.get(account.provider) ?? account.provider,
+          email: account.email,
+          createdAt: account.createdAt,
+        }))}
+        available={available.filter((p) => !linkedIds.has(p.id))}
+      />
 
       <section>
         <h2 className="mb-3 text-base font-bold tracking-tight">

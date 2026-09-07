@@ -8,6 +8,14 @@ import { createSession, destroySession, hashPassword, verifyPassword } from "@/l
 
 export type FormState = { error?: string; success?: string };
 
+const PROVIDER_LABELS: Record<string, string> = {
+  google: "Google",
+  microsoft: "Microsoft",
+  facebook: "Facebook",
+  tiktok: "TikTok",
+  apple: "Apple",
+};
+
 const AVATAR_COLORS = ["#6366f1", "#0ea5e9", "#22c55e", "#f97316", "#ec4899", "#a855f7", "#14b8a6"];
 
 const loginSchema = z.object({
@@ -31,8 +39,23 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
     return { error: parsed.error.issues[0].message };
   }
 
-  const user = await db.user.findUnique({ where: { email: parsed.data.email } });
-  if (!user || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
+  const user = await db.user.findUnique({
+    where: { email: parsed.data.email },
+    include: { accounts: { select: { provider: true } } },
+  });
+
+  // Un compte cree par connexion externe n'a pas de mot de passe : on l'oriente
+  // vers le bon bouton plutot que de lui opposer un echec incomprehensible.
+  if (user && !user.passwordHash) {
+    const providers = user.accounts.map((a) => PROVIDER_LABELS[a.provider] ?? a.provider);
+    return {
+      error: providers.length
+        ? `Ce compte se connecte avec ${providers.join(" ou ")}. Utilisez le bouton correspondant.`
+        : "Ce compte n'a pas de mot de passe. Utilisez une connexion externe.",
+    };
+  }
+
+  if (!user || !(await verifyPassword(parsed.data.password, user.passwordHash!))) {
     return { error: "E-mail ou mot de passe incorrect." };
   }
 

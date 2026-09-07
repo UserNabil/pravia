@@ -25,7 +25,7 @@ datasource db {
 model User {
   id           String   @id @default(cuid()) @db.NVarChar(36)
   email        String   @unique @db.NVarChar(320)
-  passwordHash String
+  passwordHash String? // absent pour un compte cree par connexion externe
   name         String
   role         String   @default("CUSTOMER") @db.NVarChar(200) // CUSTOMER | ADMIN
   avatarColor  String   @default("#6366f1")
@@ -33,6 +33,7 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  accounts  Account[]
   addresses Address[]
   cartItems CartItem[]
   orders    Order[]
@@ -307,4 +308,27 @@ model SearchSynonym {
   id      String @id @default(cuid()) @db.NVarChar(36)
   term    String @unique @db.NVarChar(200) // forme normalisee saisie par l'internaute
   targets String // termes de remplacement, separes par des virgules
+}
+
+// ------------------------------------------------------- Connexions externes
+
+/// Compte chez un fournisseur d'identite, rattache a un utilisateur Pravia.
+/// Un meme utilisateur peut en lier plusieurs : Google au bureau, Apple sur
+/// mobile, etc. La suppression du compte Pravia emporte les liaisons.
+model Account {
+  id                String   @id @default(cuid()) @db.NVarChar(36)
+  userId            String @db.NVarChar(36)
+  provider          String @db.NVarChar(200) // google | microsoft | facebook | tiktok | apple
+  providerAccountId String @db.NVarChar(36) // identifiant stable chez le fournisseur
+  email             String? // tel que renvoye par le fournisseur, pour tracabilite
+  displayName       String?
+  avatarUrl         String?
+  createdAt         DateTime @default(now())
+  lastLoginAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@index([provider])
 }

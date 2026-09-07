@@ -243,6 +243,22 @@ sont rendus à la demande. Cloudflare met déjà en cache `/_next/static/` et
 
 ---
 
+## 6 bis · Connexions externes (facultatif)
+
+Google, Microsoft, Facebook, TikTok et Apple sont pris en charge. Chaque
+fournisseur est indépendant : sans identifiants, son bouton n'apparaît pas.
+
+La procédure complète, fournisseur par fournisseur, est dans
+**[docs/connexions-externes.md](docs/connexions-externes.md)**. Les identifiants
+se renseignent dans .env.production, et le back-office affiche pour chacun
+l'URL de rappel exacte à déclarer : **/admin/connexions**.
+
+Deux points à connaître : Apple exige HTTPS et refuse localhost, la connexion
+Apple ne peut donc être testée qu'une fois le tunnel en place ; TikTok ne
+transmet aucune adresse e-mail, elle est demandée à l'internaute juste après.
+
+---
+
 ## 7 · Dernière étape, à ne pas oublier
 
 Connectez-vous au back-office et renseignez le domaine réel :
