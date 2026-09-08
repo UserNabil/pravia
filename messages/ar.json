@@ -243,7 +243,7 @@
     "backToCart": "العودة إلى السلّة",
     "shippingAddress": "عنوان التسليم",
     "fullName": "الاسم الكامل",
-    "phone": "الهاتف",
+    "phone": "رقم الهاتف",
     "address": "العنوان",
     "addressLine2": "تفاصيل إضافية للعنوان",
     "postcode": "الرمز البريدي",
@@ -264,7 +264,15 @@
     "chooseWilayaFirst": "اختر الولاية أولاً",
     "shippingPending": "حسب البلدية",
     "cash": "الدفع عند الاستلام",
-    "cashHint": "تدفع نقدًا عند استلام طردك."
+    "cashHint": "تدفع نقدًا عند استلام طردك.",
+    "phonePlaceholder": "0X XX XX XX XX",
+    "phoneHint": "سيتّصل بك عامل التوصيل قبل مجيئه.",
+    "deliveryMode": "استلام الطلب",
+    "deliveryModeHint": "اختر المكان الذي تريد استلام طلبك فيه.",
+    "deliveryHome": "التوصيل إلى المنزل",
+    "deliveryHomeHint": "يُسلَّم إلى عنوانك",
+    "deliveryDesk": "الاستلام من أقرب محل",
+    "deliveryDeskHint": "تستلمه من مكتب ولايتك"
   },
   "orders": {
     "title": "طلباتي",
@@ -288,7 +296,9 @@
     "createAccountHint": "أنشئ حسابًا للعثور على طلباتك في أي وقت.",
     "createAccountCta": "إنشاء حساب",
     "keepShopping": "متابعة التسوق",
-    "paidCash": "الدفع نقدًا عند الاستلام"
+    "paidCash": "الدفع نقدًا عند الاستلام",
+    "deliveryHome": "التوصيل إلى المنزل",
+    "deliveryDesk": "الاستلام من أقرب محل"
   },
   "orderStatus": {
     "PENDING": "قيد الانتظار",
@@ -518,7 +528,8 @@
     "wilayaRequired": "اختر ولاية",
     "communeRequired": "اختر بلدية",
     "wilayaUnknown": "هذه الولاية غير مخدومة",
-    "communeUnknown": "هذه البلدية غير موجودة في الولاية المختارة"
+    "communeUnknown": "هذه البلدية غير موجودة في الولاية المختارة",
+    "phoneInvalid": "رقم هاتف غير صالح. مثال: 06 61 23 45 67."
   },
   "countries": {
     "France": "فرنسا",
@@ -754,7 +765,9 @@
       "payment": "الدفع",
       "trackingShort": "التتبّع",
       "updatedAt": "آخر تحديث",
-      "guestOrder": "طلب بدون حساب"
+      "guestOrder": "طلب بدون حساب",
+      "deliveryHome": "التوصيل إلى المنزل",
+      "deliveryDesk": "الاستلام من أقرب محل"
     },
     "customers": {
       "title": "العملاء",

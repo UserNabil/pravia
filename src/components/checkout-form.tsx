@@ -3,13 +3,20 @@
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import Image from "next/image";
-import { Banknote, Loader2, Lock } from "lucide-react";
+import { Banknote, Home, Loader2, Lock, Store } from "lucide-react";
 import { placeOrderAction } from "@/app/actions/orders";
 import { communesForWilayaAction } from "@/app/actions/shipping";
 import { cn, formatPrice } from "@/lib/format";
 import { LOCALE_TAGS, toLocale } from "@/i18n/routing";
 
-type Wilaya = { code: number; name: string; nameAr: string; shippingFee: number };
+type Wilaya = {
+  code: number;
+  name: string;
+  nameAr: string;
+  shippingFee: number;
+  /** Nul : le retrait au bureau coute le meme prix que le domicile. */
+  deskFee: number | null;
+};
 type Commune = { name: string; nameAr: string; fee: number };
 
 type Item = {
@@ -55,6 +62,7 @@ export function CheckoutForm({
   const [wilayaCode, setWilayaCode] = useState<number | null>(null);
   const [communes, setCommunes] = useState<Commune[]>([]);
   const [commune, setCommune] = useState<string>("");
+  const [mode, setMode] = useState<"HOME" | "DESK">("HOME");
   const [chargement, startChargement] = useTransition();
 
   // Le choix d'une wilaya recharge ses communes et remet a zero la precedente.
@@ -75,9 +83,22 @@ export function CheckoutForm({
   const communeChoisie = communes.find((c) => c.name === commune) ?? null;
 
   const gratuit = subtotal >= freeThreshold;
+
+  // Le domicile se facture a la commune, qui peut surcharger sa wilaya. Le
+  // retrait au bureau ne depend que de la wilaya : c'est le client qui s'y
+  // rend, le dernier kilometre n'est pas paye.
+  const fraisDomicile = communeChoisie?.fee ?? null;
+  const fraisBureau = wilaya ? (wilaya.deskFee ?? wilaya.shippingFee) : null;
+  const fraisRetenu = mode === "DESK" ? fraisBureau : fraisDomicile;
+
   // Tant que la destination n'est pas choisie, aucun montant n'est annonce.
-  const fraisConnus = gratuit || communeChoisie !== null;
-  const frais = gratuit ? 0 : (communeChoisie?.fee ?? 0);
+  const fraisConnus = gratuit || fraisRetenu !== null;
+  const frais = gratuit ? 0 : (fraisRetenu ?? 0);
+
+  const montant = (valeur: number | null) => {
+    if (gratuit) return tCommon("free");
+    return valeur === null ? null : formatPrice(valeur, tag);
+  };
   const tva = Math.round((subtotal * vatRate) / (1 + vatRate));
   const total = subtotal + frais;
 
@@ -98,6 +119,17 @@ export function CheckoutForm({
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <Field label={t("firstName")} name="firstName" defaultValue={defaultFirstName} required />
             <Field label={t("lastName")} name="lastName" defaultValue={defaultLastName} required />
+
+            <Field
+              label={t("phone")}
+              name="phone"
+              type="tel"
+              required
+              placeholder={t("phonePlaceholder")}
+              hint={t("phoneHint")}
+              className="sm:col-span-2"
+              dir="ltr"
+            />
 
             <div>
               <label htmlFor="wilayaCode" className="label">
@@ -145,6 +177,32 @@ export function CheckoutForm({
                 ))}
               </select>
             </div>
+          </div>
+        </section>
+
+        <section className="surface-card p-5">
+          <h2 className="text-sm font-bold">{t("deliveryMode")}</h2>
+          <p className="mt-1 text-xs text-muted-2">{t("deliveryModeHint")}</p>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <ChoixRecuperation
+              valeur="HOME"
+              choisi={mode === "HOME"}
+              onChoisir={() => setMode("HOME")}
+              Icone={Home}
+              titre={t("deliveryHome")}
+              description={t("deliveryHomeHint")}
+              montant={montant(fraisDomicile)}
+            />
+            <ChoixRecuperation
+              valeur="DESK"
+              choisi={mode === "DESK"}
+              onChoisir={() => setMode("DESK")}
+              Icone={Store}
+              titre={t("deliveryDesk")}
+              description={t("deliveryDeskHint")}
+              montant={montant(fraisBureau)}
+            />
           </div>
         </section>
 
@@ -211,7 +269,12 @@ export function CheckoutForm({
             <dd className="tabular-nums">{formatPrice(subtotal, tag)}</dd>
           </div>
           <div className="flex justify-between gap-3">
-            <dt className="text-muted">{tCart("shipping")}</dt>
+            <dt className="text-muted">
+              {tCart("shipping")}
+              <span className="block text-xs text-muted-2">
+                {mode === "DESK" ? t("deliveryDesk") : t("deliveryHome")}
+              </span>
+            </dt>
             <dd
               className={cn(
                 !fraisConnus && "text-xs text-muted-2",
@@ -240,6 +303,52 @@ export function CheckoutForm({
   );
 }
 
+/**
+ * Une des deux facons de recuperer la commande. Le montant s'affiche des qu'il
+ * est connu : le retrait ne demande que la wilaya, le domicile la commune.
+ */
+function ChoixRecuperation({
+  valeur,
+  choisi,
+  onChoisir,
+  Icone,
+  titre,
+  description,
+  montant,
+}: {
+  valeur: string;
+  choisi: boolean;
+  onChoisir: () => void;
+  Icone: React.ComponentType<{ className?: string }>;
+  titre: string;
+  description: string;
+  montant: string | null;
+}) {
+  return (
+    <label
+      className={cn(
+        "flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors",
+        choisi ? "border-primary bg-primary-soft" : "border-border hover:border-border-strong"
+      )}
+    >
+      <input
+        type="radio"
+        name="deliveryMode"
+        value={valeur}
+        checked={choisi}
+        onChange={onChoisir}
+        className="mt-0.5 size-4 shrink-0 accent-[var(--primary)]"
+      />
+      <Icone className={cn("mt-0.5 size-5 shrink-0", choisi ? "text-primary" : "text-muted-2")} />
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium">{titre}</span>
+        <span className="block text-xs text-muted-2">{description}</span>
+      </span>
+      {montant && <span className="shrink-0 text-sm font-semibold tabular-nums">{montant}</span>}
+    </label>
+  );
+}
+
 function Field({
   label,
   name,
@@ -247,7 +356,9 @@ function Field({
   defaultValue,
   required,
   placeholder,
+  hint,
   className,
+  dir,
 }: {
   label: string;
   name: string;
@@ -255,7 +366,9 @@ function Field({
   defaultValue?: string;
   required?: boolean;
   placeholder?: string;
+  hint?: string;
   className?: string;
+  dir?: "ltr" | "rtl";
 }) {
   return (
     <div className={className}>
@@ -270,8 +383,11 @@ function Field({
         defaultValue={defaultValue}
         required={required}
         placeholder={placeholder}
+        dir={dir}
+        inputMode={type === "tel" ? "tel" : undefined}
         className="input"
       />
+      {hint && <p className="mt-1.5 text-xs text-muted-2">{hint}</p>}
     </div>
   );
 }

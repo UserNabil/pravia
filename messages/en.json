@@ -264,7 +264,15 @@
     "chooseWilayaFirst": "Select a province first",
     "shippingPending": "Depends on municipality",
     "cash": "Cash on delivery",
-    "cashHint": "You pay in cash when your parcel arrives."
+    "cashHint": "You pay in cash when your parcel arrives.",
+    "phonePlaceholder": "0X XX XX XX XX",
+    "phoneHint": "The courier will call you before delivering.",
+    "deliveryMode": "Order collection",
+    "deliveryModeHint": "Choose where you want to receive your order.",
+    "deliveryHome": "Home delivery",
+    "deliveryHomeHint": "Handed over at your address",
+    "deliveryDesk": "Pick-up at the nearest shop",
+    "deliveryDeskHint": "Collect it at your wilaya desk"
   },
   "orders": {
     "title": "My orders",
@@ -288,7 +296,9 @@
     "createAccountHint": "Create an account to find your orders again at any time.",
     "createAccountCta": "Create an account",
     "keepShopping": "Keep shopping",
-    "paidCash": "Paid in cash on delivery"
+    "paidCash": "Paid in cash on delivery",
+    "deliveryHome": "Home delivery",
+    "deliveryDesk": "Pick-up at the nearest shop"
   },
   "orderStatus": {
     "PENDING": "Pending",
@@ -518,7 +528,8 @@
     "wilayaRequired": "Select a province",
     "communeRequired": "Select a municipality",
     "wilayaUnknown": "This province is not served",
-    "communeUnknown": "This municipality is not in the selected province"
+    "communeUnknown": "This municipality is not in the selected province",
+    "phoneInvalid": "Invalid phone number. Example: 06 61 23 45 67."
   },
   "countries": {
     "France": "France",
@@ -754,7 +765,9 @@
       "payment": "Payment",
       "trackingShort": "Tracking",
       "updatedAt": "Updated",
-      "guestOrder": "Guest order"
+      "guestOrder": "Guest order",
+      "deliveryHome": "Home delivery",
+      "deliveryDesk": "Pick-up at the nearest shop"
     },
     "customers": {
       "title": "Customers",

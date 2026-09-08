@@ -9,6 +9,7 @@ import { requireUser } from "@/lib/auth";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { LOCALE_TAGS, toLocale } from "@/i18n/routing";
 import { ORDER_STATUSES, ORDER_STATUS_STYLES } from "@/lib/constants";
+import { afficherTelephone } from "@/lib/phone";
 
 export const dynamic = "force-dynamic";
 
@@ -210,6 +211,20 @@ export default async function AccountOrderDetailPage({
               <p>{order.shipCommune}</p>
               <p>
                 {String(order.shipWilayaCode).padStart(2, "0")} {order.shipWilaya}
+              </p>
+              {order.shipPhone && (
+                <p>
+                  <a
+                    href={`tel:${order.shipPhone}`}
+                    dir="ltr"
+                    className="text-primary hover:underline"
+                  >
+                    {afficherTelephone(order.shipPhone)}
+                  </a>
+                </p>
+              )}
+              <p className="pt-1.5 text-xs font-medium text-foreground">
+                {order.deliveryMode === "DESK" ? t("deliveryDesk") : t("deliveryHome")}
               </p>
             </address>
           </section>

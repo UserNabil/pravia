@@ -9,20 +9,29 @@ import { getCurrentUser } from "@/lib/auth";
 import { getCurrentCart } from "@/lib/current-cart";
 import { clearGuestCart, LAST_ORDER_COOKIE } from "@/lib/guest-cart";
 import { quoteShipping } from "@/lib/shipping";
+import { normaliserTelephone } from "@/lib/phone";
 import { VAT_RATE } from "@/lib/constants";
 import { toLocale } from "@/i18n/routing";
 
 export type CheckoutState = { errorKey?: string; values?: Record<string, string | number> };
 
 /**
- * Le formulaire ne demande que le strict necessaire a une livraison : qui, et
- * ou. Ni pays ni code postal, la boutique ne desservant que l'Algerie.
+ * Le formulaire ne demande que le strict necessaire a une livraison : qui, ou,
+ * et comment joindre le destinataire. Ni pays ni code postal, la boutique ne
+ * desservant que l'Algerie.
  */
 const checkoutSchema = z.object({
   firstName: z.string().min(2, "firstNameRequired"),
   lastName: z.string().min(2, "lastNameRequired"),
+  // Le numero est enregistre sous sa forme nationale, quelle que soit la
+  // maniere dont il a ete saisi.
+  phone: z
+    .string()
+    .transform((valeur) => normaliserTelephone(valeur))
+    .refine((valeur): valeur is string => valeur !== null, "phoneInvalid"),
   wilayaCode: z.number().int().min(1, "wilayaRequired").max(99, "wilayaRequired"),
   commune: z.string().min(1, "communeRequired"),
+  deliveryMode: z.enum(["HOME", "DESK"]),
 });
 
 export async function placeOrderAction(_prev: CheckoutState, formData: FormData): Promise<CheckoutState> {
@@ -32,8 +41,11 @@ export async function placeOrderAction(_prev: CheckoutState, formData: FormData)
   const parsed = checkoutSchema.safeParse({
     firstName: String(formData.get("firstName") ?? "").trim(),
     lastName: String(formData.get("lastName") ?? "").trim(),
+    phone: String(formData.get("phone") ?? "").trim(),
     wilayaCode: Number(formData.get("wilayaCode") ?? 0),
     commune: String(formData.get("commune") ?? "").trim(),
+    // Deux valeurs possibles : tout le reste vaut une remise a domicile.
+    deliveryMode: formData.get("deliveryMode") === "DESK" ? "DESK" : "HOME",
   });
 
   if (!parsed.success) return { errorKey: parsed.error.issues[0].message };
@@ -75,7 +87,7 @@ export async function placeOrderAction(_prev: CheckoutState, formData: FormData)
 
   const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const { fee: shipping } = await quoteShipping(
-    { wilayaCode: data.wilayaCode, commune: data.commune },
+    { wilayaCode: data.wilayaCode, commune: data.commune, mode: data.deliveryMode },
     subtotal
   );
   const tax = Math.round((subtotal * VAT_RATE) / (1 + VAT_RATE));
@@ -99,6 +111,8 @@ export async function placeOrderAction(_prev: CheckoutState, formData: FormData)
         shipWilayaCode: data.wilayaCode,
         shipWilaya: destination.name,
         shipCommune: destination.communes[0].name,
+        shipPhone: data.phone,
+        deliveryMode: data.deliveryMode,
         items: {
           create: cart.map((item) => ({
             productId: item.product.id,

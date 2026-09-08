@@ -264,7 +264,15 @@
     "chooseWilayaFirst": "Choisissez d'abord une wilaya",
     "shippingPending": "Selon la commune",
     "cash": "Paiement a la livraison",
-    "cashHint": "Vous reglez en especes a la reception de votre colis."
+    "cashHint": "Vous reglez en especes a la reception de votre colis.",
+    "phonePlaceholder": "0X XX XX XX XX",
+    "phoneHint": "Le livreur vous appellera avant de se presenter.",
+    "deliveryMode": "Recuperation de la commande",
+    "deliveryModeHint": "Choisissez ou vous souhaitez recevoir votre commande.",
+    "deliveryHome": "Livraison a domicile",
+    "deliveryHomeHint": "Remise a votre adresse",
+    "deliveryDesk": "Retrait au magasin le plus proche",
+    "deliveryDeskHint": "A recuperer au bureau de votre wilaya"
   },
   "orders": {
     "title": "Mes commandes",
@@ -288,7 +296,9 @@
     "createAccountHint": "Creez un compte avec cette adresse pour retrouver vos commandes a tout moment.",
     "createAccountCta": "Creer un compte",
     "keepShopping": "Continuer mes achats",
-    "paidCash": "Regle en especes a la livraison"
+    "paidCash": "Regle en especes a la livraison",
+    "deliveryHome": "Livraison a domicile",
+    "deliveryDesk": "Retrait au magasin le plus proche"
   },
   "orderStatus": {
     "PENDING": "En attente",
@@ -518,7 +528,8 @@
     "wilayaRequired": "Choisissez une wilaya",
     "communeRequired": "Choisissez une commune",
     "wilayaUnknown": "Cette wilaya n'est pas desservie",
-    "communeUnknown": "Cette commune n'existe pas dans la wilaya choisie"
+    "communeUnknown": "Cette commune n'existe pas dans la wilaya choisie",
+    "phoneInvalid": "Numero de telephone invalide. Exemple : 06 61 23 45 67."
   },
   "countries": {
     "France": "France",
@@ -754,7 +765,9 @@
       "payment": "Paiement",
       "trackingShort": "Suivi",
       "updatedAt": "Mise a jour",
-      "guestOrder": "Commande sans compte"
+      "guestOrder": "Commande sans compte",
+      "deliveryHome": "Livraison a domicile",
+      "deliveryDesk": "Retrait au magasin le plus proche"
     },
     "customers": {
       "title": "Clients",

@@ -18,7 +18,10 @@ import { FREE_SHIPPING_THRESHOLD, SHIPPING_FALLBACK_RATE } from "./constants";
  * destination.
  */
 
-export type Destination = { wilayaCode: number; commune: string };
+/** HOME : remise a l'adresse. DESK : retrait au bureau le plus proche. */
+export type ModeLivraison = "HOME" | "DESK";
+
+export type Destination = { wilayaCode: number; commune: string; mode?: ModeLivraison };
 
 export type ShippingQuote = {
   /** Montant retenu, en centimes de dinar. */
@@ -31,17 +34,28 @@ export type ShippingQuote = {
 };
 
 /** Tarif applicable a une destination, avant seuil de gratuite. */
-export async function baseShippingFee({ wilayaCode, commune }: Destination): Promise<{ fee: number; fallback: boolean }> {
+export async function baseShippingFee({
+  wilayaCode,
+  commune,
+  mode = "HOME",
+}: Destination): Promise<{ fee: number; fallback: boolean }> {
   const wilaya = await db.wilaya.findUnique({
     where: { code: wilayaCode },
     select: {
       shippingFee: true,
+      deskFee: true,
       active: true,
       communes: { where: { name: commune }, select: { shippingFee: true }, take: 1 },
     },
   });
 
   if (!wilaya || !wilaya.active) return { fee: SHIPPING_FALLBACK_RATE, fallback: true };
+
+  // Un retrait au bureau ne depend pas de la commune : c'est le client qui s'y
+  // rend. La surcharge communale, qui paie le dernier kilometre, ne s'applique
+  // donc pas. Sans tarif de bureau renseigne, le retrait coute comme le
+  // domicile plutot que de bloquer la commande.
+  if (mode === "DESK") return { fee: wilaya.deskFee ?? wilaya.shippingFee, fallback: false };
 
   const surcharge = wilaya.communes[0]?.shippingFee;
   if (surcharge != null) return { fee: surcharge, fallback: false };
@@ -63,11 +77,16 @@ export async function quoteShipping(destination: Destination, subtotal: number):
  * wilaya.
  */
 export async function cheapestShippingFee(): Promise<number> {
-  const [wilaya, commune] = await Promise.all([
+  const [wilaya, bureau, commune] = await Promise.all([
     db.wilaya.findFirst({
       where: { active: true },
       orderBy: { shippingFee: "asc" },
       select: { shippingFee: true },
+    }),
+    db.wilaya.findFirst({
+      where: { active: true, deskFee: { not: null } },
+      orderBy: { deskFee: "asc" },
+      select: { deskFee: true },
     }),
     db.commune.findFirst({
       where: { shippingFee: { not: null }, wilaya: { active: true } },
@@ -76,7 +95,7 @@ export async function cheapestShippingFee(): Promise<number> {
     }),
   ]);
 
-  const candidats = [wilaya?.shippingFee, commune?.shippingFee].filter(
+  const candidats = [wilaya?.shippingFee, bureau?.deskFee, commune?.shippingFee].filter(
     (v): v is number => typeof v === "number"
   );
   return candidats.length ? Math.min(...candidats) : SHIPPING_FALLBACK_RATE;
@@ -87,7 +106,7 @@ export async function listWilayas() {
   return db.wilaya.findMany({
     where: { active: true },
     orderBy: { code: "asc" },
-    select: { code: true, name: true, nameAr: true, shippingFee: true },
+    select: { code: true, name: true, nameAr: true, shippingFee: true, deskFee: true },
   });
 }
 

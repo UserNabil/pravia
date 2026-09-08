@@ -26,6 +26,7 @@ export default async function AdminShippingPage() {
       name: true,
       nameAr: true,
       shippingFee: true,
+      deskFee: true,
       active: true,
       _count: { select: { communes: true } },
       communes: { where: { shippingFee: { not: null } }, select: { id: true } },
@@ -37,6 +38,7 @@ export default async function AdminShippingPage() {
     name: w.name,
     nameAr: w.nameAr,
     shippingFee: w.shippingFee,
+    deskFee: w.deskFee,
     active: w.active,
     communes: w._count.communes,
     overrides: w.communes.length,
@@ -53,7 +55,8 @@ export default async function AdminShippingPage() {
         <h1 className="text-2xl font-bold tracking-tight">Livraison</h1>
         <p className="mt-1 text-sm text-muted-2">
           Un tarif par wilaya, applique a toutes ses communes. Une commune peut porter le sien
-          lorsqu'elle coute plus cher a desservir.
+          lorsqu'elle coute plus cher a desservir. Le tarif de retrait au bureau est
+          facultatif : laisse vide, le retrait coute le meme prix que le domicile.
         </p>
       </div>
 

@@ -250,6 +250,15 @@ model Order {
   shipWilaya     String
   shipCommune    String
 
+  /// Le livreur appelle avant de se presenter : sans numero, une commande
+  /// algerienne n'est pas livrable. Valeur par defaut vide pour les commandes
+  /// passees avant que le champ n'existe.
+  shipPhone String @default("")
+
+  /// HOME : remise a l'adresse. DESK : retrait au bureau le plus proche, que
+  /// le transporteur facture generalement moins cher.
+  deliveryMode String @default("HOME")
+
   trackingNumber String?
   notes          String?
 
@@ -366,6 +375,9 @@ model Wilaya {
   name        String
   nameAr      String
   shippingFee Int
+  /// Tarif du retrait au bureau. Nul : le tarif a domicile s'applique, le
+  /// retrait ne coutant alors ni plus ni moins cher.
+  deskFee     Int?
   /// Une wilaya inactive n'est plus proposee a la commande, sans que
   /// l'historique des commandes deja livrees la-bas en soit affecte.
   active      Boolean @default(true)

@@ -11,6 +11,8 @@ type Wilaya = {
   name: string;
   nameAr: string;
   shippingFee: number;
+  /** Nul : le retrait au bureau coute comme le domicile. */
+  deskFee: number | null;
   active: boolean;
   communes: number;
   overrides: number;
@@ -73,7 +75,8 @@ export function WilayaGrid({ wilayas }: { wilayas: Wilaya[] }) {
           <thead className="border-b border-border text-xs text-muted-2">
             <tr>
               <th className="p-3 text-start font-medium">Wilaya</th>
-              <th className="p-3 text-start font-medium">Tarif (DA)</th>
+              <th className="p-3 text-start font-medium">Domicile (DA)</th>
+              <th className="p-3 text-start font-medium">Bureau (DA)</th>
               <th className="p-3 text-start font-medium">Communes</th>
               <th className="p-3 text-start font-medium">Livree</th>
             </tr>
@@ -95,6 +98,18 @@ export function WilayaGrid({ wilayas }: { wilayas: Wilaya[] }) {
                     type="number"
                     name={`fee-${w.code}`}
                     defaultValue={Math.round(w.shippingFee / 100)}
+                    min={0}
+                    step={50}
+                    className="input w-28 tabular-nums"
+                  />
+                </td>
+                <td className="p-3">
+                  {/* Vide : le retrait revient au tarif du domicile. */}
+                  <input
+                    type="number"
+                    name={`desk-${w.code}`}
+                    defaultValue={w.deskFee == null ? "" : Math.round(w.deskFee / 100)}
+                    placeholder="idem"
                     min={0}
                     step={50}
                     className="input w-28 tabular-nums"

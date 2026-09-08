@@ -42,7 +42,33 @@ export async function saveWilayaFeesAction(_prev: AdminState, formData: FormData
   await guard();
 
   const actives = new Set(formData.getAll("active").map(String));
-  const modifications: { code: number; shippingFee: number; active: boolean }[] = [];
+
+  // Un champ de bureau vide efface le tarif plutot que d'y inscrire zero, qui
+  // signifierait « retrait offert ». Les tarifs sont releves d'abord, la
+  // colonne du domicile decidant ensuite des lignes a mettre a jour.
+  const bureaux = new Map<number, number | null>();
+  for (const [cle, valeur] of formData.entries()) {
+    const correspondance = /^desk-(\d+)$/.exec(cle);
+    if (!correspondance) continue;
+
+    const code = Number(correspondance[1]);
+    const texte = String(valeur).trim();
+    if (!texte) {
+      bureaux.set(code, null);
+      continue;
+    }
+
+    const parsed = dinars.safeParse(texte);
+    if (!parsed.success) return { errorKey: "feeInvalid", values: { wilaya: code } };
+    bureaux.set(code, parsed.data * 100);
+  }
+
+  const modifications: {
+    code: number;
+    shippingFee: number;
+    deskFee: number | null;
+    active: boolean;
+  }[] = [];
 
   for (const [cle, valeur] of formData.entries()) {
     const correspondance = /^fee-(\d+)$/.exec(cle);
@@ -55,6 +81,7 @@ export async function saveWilayaFeesAction(_prev: AdminState, formData: FormData
     modifications.push({
       code,
       shippingFee: parsed.data * 100,
+      deskFee: bureaux.get(code) ?? null,
       active: actives.has(String(code)),
     });
   }
@@ -65,7 +92,7 @@ export async function saveWilayaFeesAction(_prev: AdminState, formData: FormData
     modifications.map((m) =>
       db.wilaya.update({
         where: { code: m.code },
-        data: { shippingFee: m.shippingFee, active: m.active },
+        data: { shippingFee: m.shippingFee, deskFee: m.deskFee, active: m.active },
       })
     )
   );

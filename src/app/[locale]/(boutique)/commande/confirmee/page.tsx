@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { LAST_ORDER_COOKIE } from "@/lib/guest-cart";
 import { formatDate, formatPrice } from "@/lib/format";
 import { LOCALE_TAGS, toLocale } from "@/i18n/routing";
+import { afficherTelephone } from "@/lib/phone";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +78,20 @@ export default async function GuestOrderConfirmedPage({
           <p>{order.shipCommune}</p>
           <p>
             {String(order.shipWilayaCode).padStart(2, "0")} {order.shipWilaya}
+          </p>
+          {order.shipPhone && (
+            <p>
+              <a
+                href={`tel:${order.shipPhone}`}
+                dir="ltr"
+                className="text-primary hover:underline"
+              >
+                {afficherTelephone(order.shipPhone)}
+              </a>
+            </p>
+          )}
+          <p className="pt-1.5 text-xs font-medium text-foreground">
+            {order.deliveryMode === "DESK" ? t("deliveryDesk") : t("deliveryHome")}
           </p>
         </address>
       </section>
