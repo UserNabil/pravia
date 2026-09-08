@@ -21,6 +21,20 @@ export const ORDER_STATUS_STYLES: Record<string, string> = {
 
 export const CONDITIONS = ["NEW", "REFURBISHED", "SECOND_HAND"] as const;
 
+/**
+ * Unites de garantie. Un accessoire d'entree de gamme peut n'etre garanti que
+ * quelques jours, un chargeur de marque plusieurs annees : la duree se saisit
+ * donc en valeur plus unite, et non en mois.
+ */
+export const WARRANTY_UNITS = ["DAY", "MONTH", "YEAR"] as const;
+export type WarrantyUnit = (typeof WARRANTY_UNITS)[number];
+
+export const WARRANTY_UNIT_LABELS: Record<WarrantyUnit, string> = {
+  DAY: "jour(s)",
+  MONTH: "mois",
+  YEAR: "an(s)",
+};
+
 
 
 export const SORT_OPTIONS = [
@@ -31,10 +45,26 @@ export const SORT_OPTIONS = [
   { value: "rating", key: "rating" },
 ] as const;
 
-/** Frais de port : offerts au-dessus du seuil. */
-export const FREE_SHIPPING_THRESHOLD = 15000; // 150,00 EUR
-export const SHIPPING_FLAT_RATE = 990; // 9,90 EUR
-export const VAT_RATE = 0.2;
+/**
+ * Monnaie : dinar algerien. Les montants restent stockes en centimes, comme
+ * partout ailleurs dans le schema — un entier evite les erreurs d'arrondi des
+ * flottants. Le dinar ne s'affiche pas avec ses centimes dans l'usage courant :
+ * formatPrice les masque.
+ */
+export const CURRENCY = "DZD";
+
+/**
+ * Frais de port : offerts au-dessus du seuil. En dessous, le tarif vient de la
+ * wilaya de livraison, ou de la commune quand elle en definit un (voir
+ * resolveShippingFee).
+ */
+export const FREE_SHIPPING_THRESHOLD = 30000000; // 300 000,00 DA
+
+/** Tarif de secours, si la wilaya choisie n'a pas encore de tarif renseigne. */
+export const SHIPPING_FALLBACK_RATE = 60000; // 600,00 DA
+
+/** TVA algerienne au taux normal. */
+export const VAT_RATE = 0.19;
 
 /**
  * Libelles du back-office, encore monolingue.

@@ -4,46 +4,44 @@ import { redirectLocalized } from "@/lib/redirect";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
-import { FREE_SHIPPING_THRESHOLD, SHIPPING_FLAT_RATE, VAT_RATE } from "@/lib/constants";
+import { getCurrentCart } from "@/lib/current-cart";
+import { clearGuestCart, LAST_ORDER_COOKIE } from "@/lib/guest-cart";
+import { quoteShipping } from "@/lib/shipping";
+import { VAT_RATE } from "@/lib/constants";
+import { toLocale } from "@/i18n/routing";
 
 export type CheckoutState = { errorKey?: string; values?: Record<string, string | number> };
 
+/**
+ * Le formulaire ne demande que le strict necessaire a une livraison : qui, et
+ * ou. Ni pays ni code postal, la boutique ne desservant que l'Algerie.
+ */
 const checkoutSchema = z.object({
-  fullName: z.string().min(2, "fullNameRequired"),
-  line1: z.string().min(4, "addressRequired"),
-  line2: z.string().optional(),
-  city: z.string().min(2, "cityRequired"),
-  zip: z.string().min(3, "zipRequired"),
-  country: z.string().min(2, "countryRequired"),
-  phone: z.string().optional(),
-  paymentMethod: z.enum(["CARD", "PAYPAL", "TRANSFER"]),
-  saveAddress: z.string().optional(),
+  firstName: z.string().min(2, "firstNameRequired"),
+  lastName: z.string().min(2, "lastNameRequired"),
+  wilayaCode: z.number().int().min(1, "wilayaRequired").max(99, "wilayaRequired"),
+  commune: z.string().min(1, "communeRequired"),
 });
 
 export async function placeOrderAction(_prev: CheckoutState, formData: FormData): Promise<CheckoutState> {
+  // Aucune connexion exigee : le compte ne sert qu'a retrouver ses commandes.
   const user = await getCurrentUser();
-  if (!user) return redirectLocalized("/connexion?redirectTo=/commande");
 
   const parsed = checkoutSchema.safeParse({
-    fullName: String(formData.get("fullName") ?? "").trim(),
-    line1: String(formData.get("line1") ?? "").trim(),
-    line2: String(formData.get("line2") ?? "").trim() || undefined,
-    city: String(formData.get("city") ?? "").trim(),
-    zip: String(formData.get("zip") ?? "").trim(),
-    country: String(formData.get("country") ?? "France").trim(),
-    phone: String(formData.get("phone") ?? "").trim() || undefined,
-    paymentMethod: String(formData.get("paymentMethod") ?? "CARD"),
-    saveAddress: String(formData.get("saveAddress") ?? ""),
+    firstName: String(formData.get("firstName") ?? "").trim(),
+    lastName: String(formData.get("lastName") ?? "").trim(),
+    wilayaCode: Number(formData.get("wilayaCode") ?? 0),
+    commune: String(formData.get("commune") ?? "").trim(),
   });
 
   if (!parsed.success) return { errorKey: parsed.error.issues[0].message };
 
-  const cart = await db.cartItem.findMany({
-    where: { userId: user.id },
-    include: { product: { include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } } } },
-  });
+  // Langue transmise par le formulaire : elle sert aux redirections finales.
+  const langue = toLocale(String(formData.get("locale") ?? ""));
 
+  const { items: cart } = await getCurrentCart();
   if (!cart.length) return { errorKey: "cartEmpty" };
 
   // Verification du stock avant d'engager la commande.
@@ -59,10 +57,28 @@ export async function placeOrderAction(_prev: CheckoutState, formData: FormData)
     }
   }
 
-  const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT_RATE;
-  const tax = Math.round((subtotal * VAT_RATE) / (1 + VAT_RATE));
   const data = parsed.data;
+
+  // La wilaya et la commune sont revalidees en base : le tarif retenu ne vient
+  // jamais du formulaire, seulement de la grille du back-office.
+  const destination = await db.wilaya.findUnique({
+    where: { code: data.wilayaCode },
+    select: {
+      name: true,
+      active: true,
+      communes: { where: { name: data.commune }, select: { name: true }, take: 1 },
+    },
+  });
+
+  if (!destination || !destination.active) return { errorKey: "wilayaUnknown" };
+  if (!destination.communes.length) return { errorKey: "communeUnknown" };
+
+  const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const { fee: shipping } = await quoteShipping(
+    { wilayaCode: data.wilayaCode, commune: data.commune },
+    subtotal
+  );
+  const tax = Math.round((subtotal * VAT_RATE) / (1 + VAT_RATE));
 
   const count = await db.order.count();
   const number = `PRV-${new Date().getFullYear()}-${String(1000 + count + 1)}`;
@@ -71,23 +87,21 @@ export async function placeOrderAction(_prev: CheckoutState, formData: FormData)
     const created = await tx.order.create({
       data: {
         number,
-        userId: user.id,
+        userId: user?.id ?? null,
         status: "PAID", // Paiement simule : la commande est validee immediatement.
         subtotal,
         shipping,
         tax,
         total: subtotal + shipping,
-        paymentMethod: data.paymentMethod,
-        shipFullName: data.fullName,
-        shipLine1: data.line1,
-        shipLine2: data.line2 ?? null,
-        shipCity: data.city,
-        shipZip: data.zip,
-        shipCountry: data.country,
-        shipPhone: data.phone ?? null,
+        paymentMethod: "CASH", // especes a la livraison, seul mode accepte
+        shipFirstName: data.firstName,
+        shipLastName: data.lastName,
+        shipWilayaCode: data.wilayaCode,
+        shipWilaya: destination.name,
+        shipCommune: destination.communes[0].name,
         items: {
           create: cart.map((item) => ({
-            productId: item.productId,
+            productId: item.product.id,
             titleSnapshot: item.product.title,
             priceSnapshot: item.product.price,
             imageSnapshot: item.product.images[0]?.url ?? null,
@@ -99,7 +113,7 @@ export async function placeOrderAction(_prev: CheckoutState, formData: FormData)
 
     for (const item of cart) {
       await tx.product.update({
-        where: { id: item.productId },
+        where: { id: item.product.id },
         data: {
           stock: { decrement: item.quantity },
           soldCount: { increment: item.quantity },
@@ -107,29 +121,28 @@ export async function placeOrderAction(_prev: CheckoutState, formData: FormData)
       });
     }
 
-    await tx.cartItem.deleteMany({ where: { userId: user.id } });
-
-    if (data.saveAddress === "on") {
-      await tx.address.create({
-        data: {
-          userId: user.id,
-          fullName: data.fullName,
-          line1: data.line1,
-          line2: data.line2 ?? null,
-          city: data.city,
-          zip: data.zip,
-          country: data.country,
-          phone: data.phone ?? null,
-        },
-      });
-    }
+    if (user) await tx.cartItem.deleteMany({ where: { userId: user.id } });
 
     return created;
   });
 
+  if (!user) await clearGuestCart();
+
   revalidatePath("/", "layout");
   revalidatePath("/compte/commandes");
-  return redirectLocalized(`/compte/commandes/${order.id}?nouvelle=1`);
+
+  // Un client connecte retrouve sa commande dans son espace. Un visiteur sans
+  // compte est oriente vers une confirmation protegee par un cookie : le
+  // numero seul ne suffit pas a consulter une commande.
+  if (user) return redirectLocalized(`/compte/commandes/${order.id}?nouvelle=1`, langue);
+
+  (await cookies()).set(LAST_ORDER_COOKIE, order.id, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60,
+  });
+  return redirectLocalized("/commande/confirmee", langue);
 }
 
 const reviewSchema = z.object({

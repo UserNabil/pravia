@@ -8,7 +8,7 @@ import { routing } from "@/i18n/routing";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
 import { slugify } from "@/lib/format";
 import { rebuildSearchIndex, syncProductSearchText } from "@/lib/search-index";
-import { ORDER_STATUSES } from "@/lib/constants";
+import { ORDER_STATUSES, WARRANTY_UNITS } from "@/lib/constants";
 
 /**
  * Retour d'une action du back-office.
@@ -49,7 +49,8 @@ const productSchema = z.object({
   sku: z.string().min(1, "skuRequired"),
   condition: z.enum(["NEW", "REFURBISHED", "SECOND_HAND"]),
   minOrder: z.coerce.number().int().min(1),
-  warrantyMonths: z.coerce.number().int().min(0),
+  warrantyValue: z.coerce.number().int().min(0),
+  warrantyUnit: z.enum(WARRANTY_UNITS),
   categoryId: z.string().min(1, "categoryRequired"),
   brandId: z.string().min(1, "brandRequired"),
   storage: z.string().optional(),
@@ -72,7 +73,8 @@ function readProductForm(formData: FormData) {
     sku: String(formData.get("sku") ?? "").trim(),
     condition: String(formData.get("condition") ?? "NEW"),
     minOrder: String(formData.get("minOrder") ?? "1"),
-    warrantyMonths: String(formData.get("warrantyMonths") ?? "24"),
+    warrantyValue: String(formData.get("warrantyValue") ?? "12"),
+    warrantyUnit: String(formData.get("warrantyUnit") ?? "MONTH"),
     categoryId: String(formData.get("categoryId") ?? ""),
     brandId: String(formData.get("brandId") ?? ""),
     storage: String(formData.get("storage") ?? "").trim() || undefined,
@@ -119,7 +121,8 @@ export async function createProductAction(_prev: AdminState, formData: FormData)
       sku: data.sku,
       condition: data.condition,
       minOrder: data.minOrder,
-      warrantyMonths: data.warrantyMonths,
+      warrantyValue: data.warrantyValue,
+      warrantyUnit: data.warrantyUnit,
       categoryId: data.categoryId,
       brandId: data.brandId,
       storage: data.storage ?? null,
@@ -175,7 +178,8 @@ export async function updateProductAction(
       sku: data.sku,
       condition: data.condition,
       minOrder: data.minOrder,
-      warrantyMonths: data.warrantyMonths,
+      warrantyValue: data.warrantyValue,
+      warrantyUnit: data.warrantyUnit,
       categoryId: data.categoryId,
       brandId: data.brandId,
       storage: data.storage ?? null,
@@ -552,7 +556,6 @@ export async function saveSettingsAction(_prev: AdminState, formData: FormData):
     "store.email",
     "store.phone",
     "shipping.freeThreshold",
-    "shipping.flatRate",
     // Le bandeau se decline par langue ; la cle nue sert de repli.
     "banner.text",
     "banner.text.fr",

@@ -17,11 +17,12 @@ export default getRequestConfig(async ({ requestLocale }) => {
         short: { day: "2-digit", month: "short", year: "numeric" },
         long: { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" },
       },
-      number: {
-        currency: { style: "currency", currency: "EUR" },
-      },
+      // Pas de prereglage monetaire ici : tous les prix passent par formatPrice,
+      // via useFormat cote client et getFormat cote serveur. Un second chemin
+      // de mise en forme finirait par diverger — c'est ce qui avait laisse des
+      // euros sur les vignettes produits apres le passage au dinar.
     },
-    timeZone: "Europe/Paris",
+    timeZone: "Africa/Algiers",
     onError(error) {
       // Une cle manquante ne doit pas faire tomber la page : elle est signalee
       // dans les journaux et remplacee par son identifiant.

@@ -3,6 +3,7 @@ import { cookies, headers } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
+import { mergeGuestCartIntoAccount } from "./guest-cart";
 
 const COOKIE_NAME = "pravia_session";
 const MAX_AGE = 60 * 60 * 24 * 30; // 30 jours
@@ -57,6 +58,12 @@ export async function createSession(userId: string): Promise<void> {
     path: "/",
     maxAge: MAX_AGE,
   });
+
+  // Toute ouverture de session recupere le panier constitue sans compte. C'est
+  // fait ici plutot qu'a chaque appelant : connexion, inscription et les cinq
+  // fournisseurs externes passent tous par cette fonction, et en oublier un
+  // reviendrait a vider le panier d'un client au pire moment.
+  await mergeGuestCartIntoAccount(userId);
 }
 
 export async function destroySession(): Promise<void> {

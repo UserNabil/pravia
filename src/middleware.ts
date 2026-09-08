@@ -11,6 +11,6 @@ export const config = {
   // Les routes techniques restent hors du prefixe de langue : elles ne
   // renvoient pas de contenu traduit.
   matcher: [
-    "/((?!api|_next|_vercel|products|robots.txt|sitemap.xml|manifest.webmanifest|opengraph-image|.*\..*).*)",
+    "/((?!api|_next|_vercel|products|media|robots.txt|sitemap.xml|manifest.webmanifest|opengraph-image|.*\..*).*)",
   ],
 };

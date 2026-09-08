@@ -1,19 +1,37 @@
 /**
  * Mise en forme des prix, dates et nombres.
  *
- * Les prix sont stockes en centimes d'euro. Chaque fonction accepte une
+ * Les prix sont stockes en centimes de dinar. Chaque fonction accepte une
  * etiquette de langue : le back-office reste en francais, la boutique suit
  * la langue choisie par l'internaute.
  */
 
+import { CURRENCY } from "./constants";
+
 const DEFAULT_TAG = "fr-FR";
 
+/**
+ * Le dinar ne s'emploie pas avec ses centimes : les prix s'affichent en unites
+ * entieres. Les montants restent malgre tout stockes en centimes, pour que le
+ * calcul d'une TVA ou d'une remise ne traine pas d'erreur d'arrondi.
+ *
+ * En arabe, Intl rend la forme locale attendue (د.ج.) et on la laisse faire.
+ * En francais et en anglais il rend le code ISO, "DZD", alors que l'usage
+ * algerien ecrit "DA" : on met donc le nombre en forme seul et on ajoute
+ * l'abreviation.
+ */
 export function formatPrice(cents: number, locale: string = DEFAULT_TAG): string {
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: cents % 100 === 0 ? 0 : 2,
-  }).format(cents / 100);
+  const montant = cents / 100;
+
+  if (locale.startsWith("ar")) {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: CURRENCY,
+      maximumFractionDigits: 0,
+    }).format(montant);
+  }
+
+  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(montant)} DA`;
 }
 
 export function formatDate(date: Date | string, locale: string = DEFAULT_TAG): string {

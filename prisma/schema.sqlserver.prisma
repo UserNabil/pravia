@@ -43,18 +43,18 @@ model User {
   @@index([role])
 }
 
+/// Carnet d'adresses d'un compte. Meme forme que l'adresse portee par une
+/// commande : prenom, nom, wilaya, commune. La boutique ne livrant qu'en
+/// Algerie, il n'y a ni pays ni code postal a saisir.
 model Address {
-  id        String  @id @default(cuid()) @db.NVarChar(36)
-  userId    String @db.NVarChar(36)
-  label     String  @default("Domicile")
-  fullName  String
-  line1     String
-  line2     String?
-  city      String
-  zip       String
-  country   String  @default("France")
-  phone     String?
-  isDefault Boolean @default(false)
+  id         String  @id @default(cuid()) @db.NVarChar(36)
+  userId     String @db.NVarChar(36)
+  label      String  @default("Domicile")
+  firstName  String
+  lastName   String
+  wilayaCode Int
+  commune    String
+  isDefault  Boolean @default(false)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -108,7 +108,11 @@ model Product {
   storage        String? // 128GB, 512GB...
   color          String?
   carrier        String? // T-Mobile, SM-F936U1...
-  warrantyMonths Int     @default(24)
+  /// Garantie exprimee en valeur et en unite : certains accessoires sont
+  /// garantis quelques jours, d'autres plusieurs annees. Un seul champ en mois
+  /// ne savait pas dire "2 jours".
+  warrantyValue  Int     @default(12)
+  warrantyUnit   String  @default("MONTH") // DAY | MONTH | YEAR
 
   // Referencement : vides, on retombe sur le titre et la description du produit.
   metaTitle       String?
@@ -128,6 +132,7 @@ model Product {
   category     Category             @relation(fields: [categoryId], references: [id])
   brand        Brand                @relation(fields: [brandId], references: [id])
   translations ProductTranslation[]
+  variants     ProductVariant[]
   images       ProductImage[]
   specs        ProductSpec[]
   reviews      Review[]
@@ -138,6 +143,33 @@ model Product {
   @@index([categoryId])
   @@index([brandId])
   @@index([active])
+}
+
+/// Declinaison d'un produit : une couleur, son visuel et son stock propre.
+///
+/// Une coque existe en plusieurs teintes, chacune avec sa photo et sa
+/// disponibilite. Le prix est facultatif : renseigne, il remplace celui du
+/// produit ; laisse vide, toutes les couleurs sont au meme prix, ce qui est le
+/// cas courant.
+model ProductVariant {
+  id        String  @id @default(cuid()) @db.NVarChar(36)
+  productId String @db.NVarChar(36)
+  name      String @db.NVarChar(200)
+  nameAr    String?
+  /// Pastille affichee dans le selecteur, en notation hexadecimale.
+  hex       String  @default("#000000")
+  sku       String?
+  stock     Int     @default(0)
+  price     Int?
+  imageUrl  String?
+  sortOrder Int     @default(0)
+
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@unique([productId, name])
+  @@index([productId])
 }
 
 model ProductImage {
@@ -171,13 +203,17 @@ model CartItem {
   id        String   @id @default(cuid()) @db.NVarChar(36)
   userId    String @db.NVarChar(36)
   productId String @db.NVarChar(36)
+  /// Couleur choisie, quand le produit se decline. Deux teintes du meme
+  /// article forment deux lignes distinctes du panier.
+  variantId String? @db.NVarChar(36)
   quantity  Int      @default(1)
   createdAt DateTime @default(now())
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@unique([userId, productId])
+  @@unique([userId, productId, variantId])
   @@index([userId])
 }
 
@@ -199,23 +235,29 @@ model WishlistItem {
 model Order {
   id     String @id @default(cuid()) @db.NVarChar(36)
   number String @unique @db.NVarChar(200)
-  userId String @db.NVarChar(36)
-  status String @default("PENDING") @db.NVarChar(200) // PENDING | PAID | SHIPPED | DELIVERED | CANCELLED | REFUNDED
+  /// Nul pour un achat sans compte : le compte ne sert qu'a retrouver ses
+  /// commandes plus tard, il n'est jamais exige pour commander.
+  userId String? @db.NVarChar(36)
+  status String  @default("PENDING") @db.NVarChar(200) // PENDING | PAID | SHIPPED | DELIVERED | CANCELLED | REFUNDED
 
   subtotal Int
   shipping Int
   tax      Int
   total    Int
 
-  paymentMethod String @default("CARD")
+  /// Paiement en especes a la livraison, seul mode accepte. La colonne est
+  /// conservee pour que la commande porte son mode de reglement, si un autre
+  /// venait a etre propose.
+  paymentMethod String @default("CASH")
 
-  shipFullName String
-  shipLine1    String
-  shipLine2    String?
-  shipCity     String
-  shipZip      String
-  shipCountry  String
-  shipPhone    String?
+  /// Adresse de livraison. Les noms de wilaya et de commune sont recopies
+  /// plutot que references : une commune renommee ou un tarif revu ne doit pas
+  /// reecrire l'historique des commandes deja passees.
+  shipFirstName  String
+  shipLastName   String
+  shipWilayaCode Int
+  shipWilaya     String
+  shipCommune    String
 
   trackingNumber String?
   notes          String? @db.NVarChar(Max)
@@ -223,25 +265,31 @@ model Order {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user  User        @relation(fields: [userId], references: [id])
+  user  User?       @relation(fields: [userId], references: [id])
   items OrderItem[]
 
   @@index([userId])
   @@index([status])
+  @@index([shipWilayaCode])
 }
 
 model OrderItem {
   id        String  @id @default(cuid()) @db.NVarChar(36)
   orderId   String @db.NVarChar(36)
   productId String? @db.NVarChar(36)
+  variantId String? @db.NVarChar(36)
 
   titleSnapshot String
-  priceSnapshot Int
-  imageSnapshot String?
-  quantity      Int
+  /// Couleur commandee, recopiee comme le titre et le prix : renommer une
+  /// teinte ne doit pas reecrire les commandes deja passees.
+  variantSnapshot String?
+  priceSnapshot   Int
+  imageSnapshot   String?
+  quantity        Int
 
-  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product? @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product?        @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([orderId])
 }
@@ -313,6 +361,44 @@ model SearchSynonym {
   id      String @id @default(cuid()) @db.NVarChar(36)
   term    String @unique @db.NVarChar(200) // forme normalisee saisie par l'internaute
   targets String // termes de remplacement, separes par des virgules
+}
+
+// ------------------------------------------------------------ Livraison
+
+/// Wilaya algerienne, decoupage 2026 : 69 wilayas.
+///
+/// Le tarif de livraison se pilote ici, depuis le back-office. Il vaut pour
+/// toutes les communes de la wilaya, sauf celles qui en definissent un.
+model Wilaya {
+  /// Code officiel (1 a 69). Sert de cle : il est stable et parlant.
+  code        Int     @id
+  name        String @db.NVarChar(200)
+  nameAr      String
+  shippingFee Int
+  /// Une wilaya inactive n'est plus proposee a la commande, sans que
+  /// l'historique des commandes deja livrees la-bas en soit affecte.
+  active      Boolean @default(true)
+
+  communes Commune[]
+
+  @@index([name])
+}
+
+/// Commune, rattachee a sa wilaya.
+model Commune {
+  id         String @id @default(cuid()) @db.NVarChar(36)
+  wilayaCode Int
+  name       String @db.NVarChar(200)
+  nameAr     String
+  postCode   String
+  /// Nul : le tarif de la wilaya s'applique. Renseigne : il le remplace.
+  shippingFee Int?
+
+  wilaya Wilaya @relation(fields: [wilayaCode], references: [code], onDelete: Cascade)
+
+  @@unique([wilayaCode, name])
+  @@index([wilayaCode])
+  @@index([name])
 }
 
 // ------------------------------------------------------- Connexions externes

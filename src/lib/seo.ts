@@ -1,6 +1,7 @@
 import "server-only";
 import type { Metadata } from "next";
 import { db } from "./db";
+import { CURRENCY } from "./constants";
 import { routing, localePath, LOCALE_TAGS, type Locale } from "@/i18n/routing";
 
 /**
@@ -13,7 +14,7 @@ export const SEO_DEFAULTS = {
   "seo.titleTemplate": "%s | Pravia",
   "seo.defaultTitle": "Pravia - La marketplace du materiel technologique",
   "seo.defaultDescription":
-    "Smartphones, ordinateurs, audio, gaming et composants. Materiel technologique neuf ou reconditionne, garanti jusqu'a 24 mois, livraison offerte des 150 EUR.",
+    "Smartphones, ordinateurs, audio, gaming et composants. Materiel technologique neuf ou reconditionne, garanti jusqu'a 24 mois, livraison offerte des 300 000 DA.",
   "seo.defaultOgImage": "",
   "seo.twitterHandle": "",
   "seo.indexable": "1",
@@ -280,7 +281,8 @@ type ProductSchemaInput = {
     price: number;
     stock: number;
     condition: string;
-    warrantyMonths: number;
+    warrantyValue: number;
+    warrantyUnit: string;
     brand: { name: string };
     category: { name: string };
     images: { url: string }[];
@@ -331,7 +333,7 @@ export function productSchema({
     offers: {
       "@type": "Offer",
       url,
-      priceCurrency: "EUR",
+      priceCurrency: CURRENCY,
       price: (product.price / 100).toFixed(2),
       priceValidUntil: priceValidUntil.toISOString().slice(0, 10),
       itemCondition: SCHEMA_CONDITIONS[product.condition] ?? SCHEMA_CONDITIONS.NEW,
@@ -342,8 +344,9 @@ export function productSchema({
         "@type": "WarrantyPromise",
         durationOfWarranty: {
           "@type": "QuantitativeValue",
-          value: product.warrantyMonths,
-          unitCode: "MON",
+          value: product.warrantyValue,
+          // Codes UN/CEFACT attendus par schema.org : jour, mois, annee.
+          unitCode: { DAY: "DAY", MONTH: "MON", YEAR: "ANN" }[product.warrantyUnit] ?? "MON",
         },
       },
     },

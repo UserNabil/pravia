@@ -289,6 +289,9 @@ export async function getProductBySlug(slug: string, locale: Locale = "fr") {
       brand: true,
       category: { include: { translations: translationFilter(locale) } },
       images: { orderBy: { sortOrder: "asc" } },
+      // Declinaisons de couleur : le selecteur de la fiche s'en sert, et
+      // chacune porte son stock, son prix eventuel et son visuel.
+      variants: { orderBy: { sortOrder: "asc" } },
       specs: { orderBy: { sortOrder: "asc" }, include: { translations: translationFilter(locale) } },
       translations: translationFilter(locale),
       reviews: {
