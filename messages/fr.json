@@ -95,6 +95,16 @@
     "latest": "Derniers arrivages",
     "latestSub": "Les references ajoutees recemment au catalogue"
   },
+  "homeEditor": {
+    "editContent": "Modifier le contenu",
+    "done": "Terminer",
+    "clickToEdit": "Cliquez pour modifier ce texte",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "reset": "Texte d'origine",
+    "resetHint": "Efface votre texte et remet celui d'origine",
+    "tokensHint": "'{products}' et '{brands}' affichent les chiffres reels."
+  },
   "catalogue": {
     "title": "Tout le catalogue",
     "breadcrumbHome": "Accueil",
@@ -560,7 +570,8 @@
       "search": "Recherche interne",
       "connections": "Connexions",
       "settings": "Reglages",
-      "shipping": "Livraison"
+      "shipping": "Livraison",
+      "homeContent": "Contenu de l'accueil"
     },
     "common": {
       "pageOf": "Page {page} sur {total}",

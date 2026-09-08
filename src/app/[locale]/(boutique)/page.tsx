@@ -10,6 +10,8 @@ import { getRatings } from "@/lib/queries";
 import { getTranslatedCategoriesWithCounts, resolveProduct, translationFilter } from "@/lib/content";
 import { ProductCard } from "@/components/product-card";
 import { CategoryIcon } from "@/components/category-icon";
+import { ModeEdition, TexteEditable } from "@/components/editable-text";
+import { getHomeContent } from "@/lib/home-content";
 import { buildPageMetadata } from "@/lib/seo";
 import { toLocale, type Locale } from "@/i18n/routing";
 
@@ -40,14 +42,21 @@ const productInclude = (locale: Locale) => ({
   translations: translationFilter(locale),
 });
 
-export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale: rawLocale } = await params;
+export default async function HomePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ edition?: string }>;
+}) {
+  const [{ locale: rawLocale }, { edition }] = await Promise.all([params, searchParams]);
   const locale = toLocale(rawLocale);
   setRequestLocale(locale);
 
-  const [t, tCommon, format, user] = await Promise.all([
+  const [t, tCommon, tEditeur, format, user] = await Promise.all([
     getTranslations("home"),
     getTranslations("common"),
+    getTranslations("homeEditor"),
     getFormat(),
     getCurrentUser(),
   ]);
@@ -93,6 +102,15 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   };
 
   const [productCount, brandCount, orderCount] = stats;
+
+  // La banniere se lit depuis les reglages, avec le catalogue pour repli : le
+  // client la reecrit depuis la boutique sans qu'on redeploie le site.
+  const contenu = await getHomeContent(locale, {
+    products: format.number(productCount),
+    brands: format.number(brandCount),
+  });
+  const estAdmin = user?.role === "ADMIN";
+
   const hero = decorate(featured[0]);
   const price = (value: number) => format.price(value);
 
@@ -107,38 +125,43 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           />
           <div className="relative grid items-center gap-6 sm:grid-cols-[1.15fr_1fr]">
             <div>
+              <ModeEdition autorise={estAdmin} ouvertParDefaut={edition === "1"}>
               <span className="chip bg-primary-soft text-primary">
                 <Sparkles className="size-3" />
-                {t("badge")}
+                <TexteEditable champ="badge" texte={contenu.badge} />
               </span>
               <h1 className="mt-3 text-3xl font-extrabold leading-[1.1] tracking-tight sm:text-4xl lg:text-[2.75rem]">
-                {t("title")}
+                <TexteEditable champ="title" texte={contenu.title} />
                 <br />
-                <span className="text-primary">{t("titleAccent")}</span>
+                <span className="text-primary">
+                  <TexteEditable champ="titleAccent" texte={contenu.titleAccent} />
+                </span>
               </h1>
               <p className="mt-3 max-w-md text-sm leading-relaxed text-muted">
-                {t("subtitle", {
-                  products: format.number(productCount),
-                  brands: format.number(brandCount),
-                })}
+                <TexteEditable
+                  champ="subtitle"
+                  texte={contenu.subtitle}
+                  aide={tEditeur("tokensHint")}
+                />
               </p>
               <div className="mt-5 flex flex-wrap gap-2.5">
                 <Link href="/produits" className="btn btn-primary px-5 py-2.5">
-                  {t("explore")}
+                  <TexteEditable champ="explore" texte={contenu.explore} />
                   <ArrowRight className="size-4 rtl:rotate-180" />
                 </Link>
                 <Link href="/produits?tri=best-sellers" className="btn btn-secondary px-5 py-2.5">
                   <TrendingUp className="size-4" />
-                  {t("bestSellers")}
+                  <TexteEditable champ="bestSellers" texte={contenu.bestSellers} />
                 </Link>
               </div>
               <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-2">
                 <span>{t("ordersHandled", { count: orderCount })}</span>
                 <span className="flex items-center gap-1.5">
                   <ShieldCheck className="size-3.5 text-success" />
-                  {t("securePayment")}
+                  <TexteEditable champ="securePayment" texte={contenu.securePayment} />
                 </span>
               </div>
+              </ModeEdition>
             </div>
 
             {hero?.images[0] && (

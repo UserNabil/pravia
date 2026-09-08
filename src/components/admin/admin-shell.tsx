@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Boxes,
+  Home,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -65,6 +66,9 @@ const SECTIONS: { group: string; links: NavLink[] }[] = [
   {
     group: "groupVisibility",
     links: [
+      // L'edition se fait sur la boutique elle-meme : le lien y emmene en
+      // ouvrant le mode edition, faute de quoi la page s'affiche telle quelle.
+      { href: "/?edition=1", key: "homeContent", Icon: Home },
       { href: "/admin/seo", key: "seo", Icon: TrendingUp },
       { href: "/admin/recherche", key: "search", Icon: Search },
       { href: "/admin/connexions", key: "connections", Icon: KeyRound },

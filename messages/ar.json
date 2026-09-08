@@ -95,6 +95,16 @@
     "latest": "وصل حديثًا",
     "latestSub": "أحدث ما أُضيف إلى المتجر"
   },
+  "homeEditor": {
+    "editContent": "تعديل المحتوى",
+    "done": "إنهاء",
+    "clickToEdit": "انقر لتعديل هذا النص",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "reset": "النص الأصلي",
+    "resetHint": "يمسح نصّك ويعيد النص الأصلي",
+    "tokensHint": "'{products}' و'{brands}' تعرضان الأرقام الفعلية."
+  },
   "catalogue": {
     "title": "كل المنتجات",
     "breadcrumbHome": "الرئيسية",
@@ -560,7 +570,8 @@
       "search": "البحث الداخلي",
       "connections": "مزوّدو تسجيل الدخول",
       "settings": "الإعدادات",
-      "shipping": "التوصيل"
+      "shipping": "التوصيل",
+      "homeContent": "محتوى الصفحة الرئيسية"
     },
     "common": {
       "pageOf": "الصفحة {page} من {total}",
