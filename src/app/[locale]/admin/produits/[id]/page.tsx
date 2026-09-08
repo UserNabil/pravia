@@ -33,6 +33,7 @@ export default async function EditProductPage({
       include: {
         images: { orderBy: { sortOrder: "asc" } },
         specs: { orderBy: { sortOrder: "asc" } },
+        variants: { orderBy: { sortOrder: "asc" } },
         translations: true,
         _count: { select: { reviews: true, orderItems: true } },
       },
@@ -109,6 +110,14 @@ export default async function EditProductPage({
           featured: product.featured,
           active: product.active,
           specs: product.specs.map((spec) => ({ label: spec.label, value: spec.value })),
+          variants: product.variants.map((v) => ({
+            id: v.id,
+            name: v.name,
+            nameAr: v.nameAr,
+            hex: v.hex,
+            stock: v.stock,
+            imageUrl: v.imageUrl,
+          })),
           translations: Object.fromEntries(
             product.translations.map((row) => [
               row.locale,

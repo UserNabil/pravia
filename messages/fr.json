@@ -1042,7 +1042,18 @@
       "upload_vide": "Aucun fichier selectionne.",
       "upload_illisible": "Envoi impossible, reessayez.",
       "upload_refuse": "Session expiree, reconnectez-vous.",
-      "upload_stockage": "Depot sur le CDN refuse. Verifiez la configuration R2."
+      "upload_stockage": "Depot sur le CDN refuse. Verifiez la configuration R2.",
+      "variants": "Couleurs disponibles",
+      "variantsHint": "Chaque couleur a son stock et son visuel. Laisser vide pour un produit non decline.",
+      "addVariant": "Ajouter une couleur",
+      "noVariant": "Aucune couleur : le produit se vend tel quel, sans selecteur.",
+      "variantColour": "Teinte",
+      "variantName": "Nom de la couleur",
+      "variantNamePlaceholder": "Noir, Bleu nuit...",
+      "variantNameAr": "Nom en arabe",
+      "variantNameArPlaceholder": "الاسم بالعربية",
+      "variantStock": "Stock",
+      "variantImage": "Image de la couleur"
     },
     "seo": {
       "title": "Referencement",

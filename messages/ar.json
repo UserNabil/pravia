@@ -1042,7 +1042,18 @@
       "upload_vide": "لم يتم اختيار أي ملف.",
       "upload_illisible": "تعذّر الرفع، أعد المحاولة.",
       "upload_refuse": "انتهت الجلسة، أعد تسجيل الدخول.",
-      "upload_stockage": "تعذّر الرفع إلى الشبكة. تحقّق من إعدادات R2."
+      "upload_stockage": "تعذّر الرفع إلى الشبكة. تحقّق من إعدادات R2.",
+      "variants": "الألوان المتوفّرة",
+      "variantsHint": "لكل لون مخزونه وصورته. اتركه فارغًا لمنتج بلا ألوان.",
+      "addVariant": "إضافة لون",
+      "noVariant": "لا ألوان: يُباع المنتج كما هو، دون منتقي.",
+      "variantColour": "اللون",
+      "variantName": "اسم اللون",
+      "variantNamePlaceholder": "أسود، أزرق داكن...",
+      "variantNameAr": "الاسم بالعربية",
+      "variantNameArPlaceholder": "الاسم بالعربية",
+      "variantStock": "المخزون",
+      "variantImage": "صورة اللون"
     },
     "seo": {
       "title": "تحسين محركات البحث",

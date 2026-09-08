@@ -143,6 +143,7 @@ export async function createProductAction(_prev: AdminState, formData: FormData)
   });
 
   await saveSpecs(product.id, formData);
+  await saveVariants(product.id, formData);
   await syncProductSearchText(product.id);
 
   refreshAdmin("/produits");
@@ -209,6 +210,7 @@ export async function updateProductAction(
   }
 
   await saveSpecs(productId, formData);
+  await saveVariants(productId, formData);
   await saveProductTranslations(productId, formData);
   await syncProductSearchText(productId);
 
@@ -281,6 +283,63 @@ async function saveCategoryTranslations(categoryId: string, formData: FormData) 
 }
 
 /** Les caracteristiques sont envoyees en lignes paralleles specLabel[] / specValue[]. */
+/**
+ * Enregistre les declinaisons de couleur d'un produit.
+ *
+ * On ne supprime pas pour recreer, comme le fait saveSpecs : une declinaison
+ * est referencee par les lignes de panier et de commande. Les recreer leur
+ * donnerait de nouveaux identifiants et effacerait ces liens — l'historique
+ * perdrait la couleur commandee. Les lignes existantes sont donc mises a jour,
+ * et seules les teintes reellement retirees du formulaire sont supprimees.
+ */
+async function saveVariants(productId: string, formData: FormData) {
+  const ids = formData.getAll("variantId").map((v) => String(v));
+  const noms = formData.getAll("variantName").map((v) => String(v).trim());
+  const nomsAr = formData.getAll("variantNameAr").map((v) => String(v).trim());
+  const teintes = formData.getAll("variantHex").map((v) => String(v).trim());
+  const stocks = formData.getAll("variantStock").map((v) => Number(v) || 0);
+  const visuels = formData.getAll("variantImage").map((v) => String(v).trim());
+
+  // Champ absent du formulaire : le produit n'a pas de section declinaisons,
+  // on ne touche a rien plutot que de tout effacer.
+  if (!formData.has("variantName")) return;
+
+  const lignes = noms
+    .map((name, i) => ({
+      id: ids[i] || null,
+      name,
+      nameAr: nomsAr[i] || null,
+      hex: /^#[0-9a-f]{6}$/i.test(teintes[i] ?? "") ? teintes[i] : "#000000",
+      stock: Math.max(0, Math.trunc(stocks[i] ?? 0)),
+      imageUrl: visuels[i] || null,
+      sortOrder: i,
+    }))
+    .filter((l) => l.name);
+
+  const conserves = lignes.map((l) => l.id).filter((id): id is string => Boolean(id));
+  await db.productVariant.deleteMany({
+    where: { productId, id: { notIn: conserves.length ? conserves : ["-"] } },
+  });
+
+  for (const ligne of lignes) {
+    const { id, ...donnees } = ligne;
+    if (id) {
+      await db.productVariant.update({ where: { id }, data: donnees });
+    } else {
+      await db.productVariant.create({ data: { ...donnees, productId } });
+    }
+  }
+
+  // Le stock du produit devient la somme des teintes : c'est lui qu'affichent
+  // le catalogue et la fiche tant qu'aucune couleur n'est choisie.
+  if (lignes.length) {
+    await db.product.update({
+      where: { id: productId },
+      data: { stock: lignes.reduce((somme, l) => somme + l.stock, 0) },
+    });
+  }
+}
+
 async function saveSpecs(productId: string, formData: FormData) {
   const labels = formData.getAll("specLabel").map((v) => String(v).trim());
   const values = formData.getAll("specValue").map((v) => String(v).trim());

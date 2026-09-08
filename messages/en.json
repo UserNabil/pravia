@@ -1042,7 +1042,18 @@
       "upload_vide": "No file selected.",
       "upload_illisible": "Upload failed, try again.",
       "upload_refuse": "Session expired, sign in again.",
-      "upload_stockage": "CDN upload refused. Check the R2 configuration."
+      "upload_stockage": "CDN upload refused. Check the R2 configuration.",
+      "variants": "Available colours",
+      "variantsHint": "Each colour has its own stock and image. Leave empty for a product with no variants.",
+      "addVariant": "Add a colour",
+      "noVariant": "No colour: the product sells as-is, with no picker.",
+      "variantColour": "Shade",
+      "variantName": "Colour name",
+      "variantNamePlaceholder": "Black, Midnight blue...",
+      "variantNameAr": "Arabic name",
+      "variantNameArPlaceholder": "الاسم بالعربية",
+      "variantStock": "Stock",
+      "variantImage": "Colour image"
     },
     "seo": {
       "title": "SEO",

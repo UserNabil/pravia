@@ -10,6 +10,7 @@ import { CONDITIONS, WARRANTY_UNITS } from "@/lib/constants";
 import { cn } from "@/lib/format";
 import { FormFeedback } from "./form-feedback";
 import { TranslationFields, type TranslationValues } from "./translation-fields";
+import { VariantRows, type LigneVariante } from "./variant-rows";
 
 export type ProductFormValues = {
   id?: string;
@@ -39,6 +40,7 @@ export type ProductFormValues = {
   featured: boolean;
   active: boolean;
   specs: { label: string; value: string }[];
+  variants: LigneVariante[];
   translations: TranslationValues;
 };
 
@@ -247,6 +249,8 @@ export function ProductForm({
           </div>
           <p className="mt-2 text-xs text-muted-2">{t("emptyRowsIgnored")}</p>
         </section>
+
+        <VariantRows initiales={values.variants} />
 
         <section className="surface-card p-5">
           <h2 className="text-sm font-bold">{t("seo")}</h2>
