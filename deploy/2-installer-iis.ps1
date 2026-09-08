@@ -58,7 +58,11 @@ if ([int](($versionNode -replace '^v(\d+)\..*$', '$1')) -lt 20) {
 }
 
 # HttpPlatformHandler s'enregistre comme module global dans IIS.
-$modules = & "$env:SystemRoot\System32\inetsrv\appcmd.exe" list modules 2>$null
+# appcmd rend une ligne par module. Il faut les recoller avant de tester :
+# applique a un tableau, -notmatch ne nie pas, il filtre — il rendrait les
+# dizaines de lignes ne correspondant pas, donc une valeur toujours vraie, et
+# le prerequis serait declare manquant meme une fois le module installe.
+$modules = (& "$env:SystemRoot\System32\inetsrv\appcmd.exe" list modules) -join "`n"
 if ($modules -notmatch "httpPlatformHandler") {
   Alerte "HttpPlatformHandler n'est pas installe."
   Info "Telechargez-le ici, puis relancez ce script :"
@@ -84,6 +88,18 @@ if (Test-Path $config) {
 New-Item -ItemType Directory -Path $Destination -Force | Out-Null
 Copy-Item -Path (Join-Path $Source "*") -Destination $Destination -Recurse -Force
 Ok "Fichiers copies vers $Destination"
+
+# Le cache d'images de Next vit dans .next\cache, en dehors du paquet : la copie
+# ne le remplace donc pas. Or il est indexe sur l'URL, pas sur le contenu du
+# fichier. Remplacer un visuel de public/ en gardant son nom — un logo, par
+# exemple — continuerait a servir l'ancienne version optimisee, avec ses
+# anciennes dimensions. On repart d'un cache vide : il se reconstruit a la
+# premiere visite.
+$cache = Join-Path $Destination ".next\cache"
+if (Test-Path $cache) {
+  Remove-Item $cache -Recurse -Force -ErrorAction SilentlyContinue
+  Ok "Cache Next vide (images optimisees regenerees a la demande)"
+}
 
 if ($sauvegarde) {
   Set-Content -Path $config -Value $sauvegarde -NoNewline
@@ -153,6 +169,21 @@ foreach ($dossier in @("logs", ".next\cache")) {
   Set-Acl -Path $chemin -AclObject $a
 }
 Ok "Ecriture accordee sur logs et .next\cache"
+
+# Les visuels televerses depuis le back-office vivent hors du dossier deploye :
+# celui-ci est remplace a chaque mise a jour, ils y seraient perdus. Le dossier
+# est lu dans .env.production, avec un emplacement par defaut a cote.
+$media = "C:\pravia-media"
+if (Test-Path $config) {
+  $ligne = Select-String -Path $config -Pattern '^\s*MEDIA_DIR\s*=' | Select-Object -First 1
+  if ($ligne) { $media = ($ligne.Line -replace '^\s*MEDIA_DIR\s*=\s*', '').Trim().Trim('"') }
+}
+New-Item -ItemType Directory -Path $media -Force | Out-Null
+$a = Get-Acl $media
+$a.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
+  $identite, "Modify", "ContainerInherit,ObjectInherit", "None", "Allow")))
+Set-Acl -Path $media -AclObject $a
+Ok "Visuels televerses : $media (ecriture accordee)"
 
 # Le fichier de secrets n'est lisible que par le pool et les administrateurs.
 if (Test-Path $config) {

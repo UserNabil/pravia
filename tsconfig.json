@@ -36,6 +36,7 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
+    "dist-iis",
     "node_modules"
   ]
 }

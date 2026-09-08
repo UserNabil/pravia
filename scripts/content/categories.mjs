@@ -1,132 +1,146 @@
 /** Traductions des categories du catalogue. */
 export const en = {
-  smartphones: {
-    name: "Smartphones",
-    description: "The latest flagships and the best value for money.",
-    metaTitle: "New and refurbished smartphones",
+  coques: {
+    name: "Cases & protection",
+    description: "Silicone, shockproof and clear cases for every model.",
+    metaTitle: "Phone cases: silicone, shockproof, clear",
     metaDescription:
-      "Compare Apple, Samsung, Xiaomi and Google smartphones: detailed records, verified reviews and warranties up to 24 months. Free delivery over 150 EUR.",
+      "Silicone, hybrid and clear phone cases, in several colours. Raised edges around the screen and camera, wireless charging friendly.",
   },
-  "ordinateurs-portables": {
-    name: "Laptops",
-    description: "Ultrabooks, workstations and gaming laptops.",
-    metaTitle: "Laptops: ultrabooks, gaming and pro",
+  "verres-trempes": {
+    name: "Screen protectors",
+    description: "9H tempered glass, curved edges and bubble-free fitting.",
+    metaTitle: "Tempered glass screen protectors",
     metaDescription:
-      "Hand-picked ultrabooks, workstations and gaming laptops. Full specifications, usage advice and manufacturer warranty included.",
+      "9H tempered glass with an alignment tray, privacy filters and camera lens protectors. Delivered across all provinces.",
   },
-  tablettes: {
-    name: "Tablets",
-    description: "To create, read and work on the move.",
-    metaTitle: "Apple, Samsung and Xiaomi tablets",
+  chargeurs: {
+    name: "Chargers",
+    description: "Wall adapters, fast charging and wireless pads.",
+    metaTitle: "Fast chargers and wireless charging pads",
     metaDescription:
-      "iPad, Galaxy Tab and Android alternatives to create, read and work on the move. A comparison of sizes, styluses and battery life.",
+      "GaN wall chargers from 30 to 45 W, magnetic wireless pads and car adapters. Protected against surges and overheating.",
   },
-  audio: {
-    name: "Audio",
-    description: "Headphones, earbuds and high-fidelity speakers.",
-    metaTitle: "Wireless headphones, earbuds and speakers",
+  cables: {
+    name: "Cables",
+    description: "USB-C, Lightning and reinforced braided cables.",
+    metaTitle: "USB-C, Lightning and multi cables",
     metaDescription:
-      "Active noise cancellation, battery life and sound quality: our selection of Bluetooth headphones, earbuds and speakers, tested and guaranteed for 24 months.",
+      "Braided USB-C, certified Lightning and 3-in-1 cables, up to 100 W. Tested for 20,000 bends at the connector.",
   },
-  "montres-connectees": {
+  "power-bank": {
+    name: "Power banks",
+    description: "From pocket size to 30,000 mAh.",
+    metaTitle: "Power banks and portable batteries",
+    metaDescription:
+      "Power banks from 5,000 to 30,000 mAh, magnetic or with a built-in connector, fast charging in and out.",
+  },
+  airpods: {
+    name: "Airpods",
+    description: "Wireless earbuds, with or without noise cancelling.",
+    metaTitle: "Wireless earbuds and airpods",
+    metaDescription:
+      "True wireless earbuds with hybrid noise cancelling, sport hooks and up to 30 hours of battery life.",
+  },
+  ecouteurs: {
+    name: "Headphones",
+    description: "Over-ear headphones and wired earphones.",
+    metaTitle: "Headphones and wired earphones",
+    metaDescription:
+      "Foldable Bluetooth headphones and USB-C wired earphones with a built-in DAC and inline remote.",
+  },
+  smartwatch: {
     name: "Smartwatches",
-    description: "Health, sport and notifications on your wrist.",
-    metaTitle: "Sport and health smartwatches",
+    description: "Connected watches and spare straps.",
+    metaTitle: "Smartwatches and straps",
     metaDescription:
-      "Heart-rate and sleep tracking plus notifications on your wrist. Apple Watch, Galaxy Watch and Pixel Watch with a warranty and free returns within 30 days.",
+      "AMOLED smartwatches with Bluetooth calling and built-in GPS, plus universal 22 mm silicone straps.",
   },
-  gaming: {
-    name: "Gaming",
-    description: "Consoles, controllers and competition peripherals.",
-    metaTitle: "Consoles, controllers and gaming peripherals",
+  "tv-box": {
+    name: "TV boxes",
+    description: "Android TV boxes and remotes.",
+    metaTitle: "Android TV boxes and remotes",
     metaDescription:
-      "PlayStation, Xbox, Nintendo Switch and esports peripherals. Verified stock, dispatch within 24 hours and a 24-month manufacturer warranty.",
+      "4K HDR and Full HD Android TV boxes, voice remotes and universal replacement remotes.",
   },
-  "photo-video": {
-    name: "Photo & Video",
-    description: "Mirrorless cameras, action cams and drones.",
-    metaTitle: "Mirrorless cameras, action cams and drones",
+  supports: {
+    name: "Holders",
+    description: "Car, desk and finger holders.",
+    metaTitle: "Phone holders: car, desk, bike",
     metaDescription:
-      "Full-frame bodies, waterproof action cams and drones under 250 g. Complete specifications and hands-on advice.",
-  },
-  composants: {
-    name: "Components",
-    description: "Graphics cards and parts to build your own machine.",
-    metaTitle: "Graphics cards and PC components",
-    metaDescription:
-      "GeForce RTX and components to build or upgrade your machine. Real-world 1440p and 4K performance detailed on every product page.",
-  },
-  "ecrans-peripheriques": {
-    name: "Displays & Peripherals",
-    description: "Monitors, keyboards and mice.",
-    metaTitle: "Displays, keyboards and mice",
-    metaDescription:
-      "High-refresh 4K and OLED monitors, keyboards and mice for work as well as play. Ergonomics, connectivity and warranties explained.",
+      "Magnetic vent mounts, adjustable aluminium desk stands, bike mounts and adhesive finger rings.",
   },
 };
 
 export const ar = {
-  smartphones: {
-    name: "الهواتف الذكية",
-    description: "أحدث الهواتف الرائدة وأفضل قيمة مقابل السعر.",
-    metaTitle: "هواتف ذكية جديدة ومجدّدة",
+  coques: {
+    name: "أغطية وحمايات",
+    description: "أغطية سيليكون ومضادة للصدمات وشفافة لكل الطُرز.",
+    metaTitle: "أغطية هواتف: سيليكون، مضادة للصدمات، شفافة",
     metaDescription:
-      "قارن هواتف Apple وSamsung وXiaomi وGoogle: بطاقات مفصّلة وآراء موثّقة وضمان يصل إلى 24 شهرًا. شحن مجاني ابتداءً من 150 يورو.",
+      "أغطية سيليكون وهجينة وشفافة بعدة ألوان. حواف مرتفعة حول الشاشة والكاميرا، وتوافق مع الشحن اللاسلكي.",
   },
-  "ordinateurs-portables": {
-    name: "الحواسيب المحمولة",
-    description: "حواسيب فائقة النحافة ومحطات عمل وحواسيب ألعاب.",
-    metaTitle: "الحواسيب المحمولة: نحيفة وللألعاب وللمحترفين",
+  "verres-trempes": {
+    name: "زجاج واقٍ",
+    description: "زجاج مقوّى بصلابة 9H، حواف منحنية وتركيب دون فقاعات.",
+    metaTitle: "واقيات شاشة من الزجاج المقوّى",
     metaDescription:
-      "حواسيب فائقة النحافة ومحطات عمل وحواسيب ألعاب مختارة. مواصفات كاملة ونصائح استخدام وضمان الشركة المصنّعة.",
+      "زجاج مقوّى بصلابة 9H مع قالب تركيب، وواقيات خصوصية، وحمايات لعدسات الكاميرا. التوصيل إلى كل الولايات.",
   },
-  tablettes: {
-    name: "الأجهزة اللوحية",
-    description: "للإبداع والقراءة والعمل أثناء التنقّل.",
-    metaTitle: "أجهزة لوحية من Apple وSamsung وXiaomi",
+  chargeurs: {
+    name: "شواحن",
+    description: "شواحن حائط، شحن سريع، وشواحن لاسلكية.",
+    metaTitle: "شواحن سريعة وقواعد شحن لاسلكي",
     metaDescription:
-      "iPad وGalaxy Tab وبدائل Android للإبداع والقراءة والعمل أثناء التنقّل. مقارنة بين الأحجام والأقلام وعمر البطارية.",
+      "شواحن GaN من 30 إلى 45 واط، وقواعد لاسلكية مغناطيسية، وشواحن سيارة. حماية من ارتفاع الجهد والحرارة.",
   },
-  audio: {
-    name: "الصوتيات",
-    description: "سمّاعات رأس وأذن ومكبّرات عالية الدقة.",
-    metaTitle: "سمّاعات ومكبّرات لاسلكية",
+  cables: {
+    name: "كابلات",
+    description: "USB-C وLightning وكابلات مجدولة مقوّاة.",
+    metaTitle: "كابلات USB-C وLightning ومتعددة",
     metaDescription:
-      "عزل ضجيج نشط وعمر بطارية وجودة صوت: مختاراتنا من سمّاعات الرأس والأذن والمكبّرات بالبلوتوث، مختبَرة ومضمونة 24 شهرًا.",
+      "كابلات USB-C مجدولة، وLightning معتمدة، و3 في 1، حتى 100 واط. مختبرة على 20 ألف ثنية عند الموصل.",
   },
-  "montres-connectees": {
-    name: "الساعات الذكية",
-    description: "الصحة والرياضة والإشعارات على معصمك.",
-    metaTitle: "ساعات ذكية للرياضة والصحة",
+  "power-bank": {
+    name: "بطاريات متنقلة",
+    description: "من بطارية الجيب إلى 30 ألف ميلي أمبير.",
+    metaTitle: "بطاريات متنقلة وشواحن محمولة",
     metaDescription:
-      "تتبّع النبض والنوم وإشعارات على معصمك. Apple Watch وGalaxy Watch وPixel Watch بضمان وإرجاع مجاني خلال 30 يومًا.",
+      "بطاريات متنقلة من 5 آلاف إلى 30 ألف ميلي أمبير، مغناطيسية أو بموصل مدمج، مع شحن سريع دخولًا وخروجًا.",
   },
-  gaming: {
-    name: "الألعاب",
-    description: "أجهزة ووحدات تحكّم وملحقات احترافية.",
-    metaTitle: "أجهزة ووحدات تحكّم وملحقات ألعاب",
+  airpods: {
+    name: "سماعات لاسلكية",
+    description: "سماعات لاسلكية، بعزل ضجيج أو بدونه.",
+    metaTitle: "سماعات لاسلكية وإيربودز",
     metaDescription:
-      "PlayStation وXbox وNintendo Switch وملحقات الرياضات الإلكترونية. مخزون مؤكّد وشحن خلال 24 ساعة وضمان مصنّع لمدة 24 شهرًا.",
+      "سماعات لاسلكية بعزل ضجيج هجين، وخطّاف رياضي، وعمر بطارية يصل إلى 30 ساعة.",
   },
-  "photo-video": {
-    name: "التصوير والفيديو",
-    description: "كاميرات عديمة المرآة وكاميرات حركة وطائرات مسيّرة.",
-    metaTitle: "كاميرات عديمة المرآة وكاميرات حركة وطائرات مسيّرة",
+  ecouteurs: {
+    name: "سماعات",
+    description: "سماعات رأس وسماعات سلكية.",
+    metaTitle: "سماعات رأس وسماعات سلكية",
     metaDescription:
-      "أجسام بإطار كامل وكاميرات حركة مقاومة للماء وطائرات مسيّرة دون 250 غرامًا. مواصفات كاملة ونصائح للبدء.",
+      "سماعات رأس بلوتوث قابلة للطي، وسماعات سلكية USB-C بمحوّل صوت مدمج وأزرار تحكّم.",
   },
-  composants: {
-    name: "المكوّنات",
-    description: "بطاقات رسومات وقطع لتركيب جهازك.",
-    metaTitle: "بطاقات رسومات ومكوّنات حواسيب",
+  smartwatch: {
+    name: "ساعات ذكية",
+    description: "ساعات متصلة وأساور بديلة.",
+    metaTitle: "ساعات ذكية وأساور",
     metaDescription:
-      "بطاقات GeForce RTX ومكوّنات لتركيب جهازك أو تطويره. أداء حقيقي بدقة 1440p و4K مفصّل في كل بطاقة منتج.",
+      "ساعات ذكية بشاشة AMOLED ومكالمات بلوتوث ونظام تموضع مدمج، وأساور سيليكون عالمية بعرض 22 مم.",
   },
-  "ecrans-peripheriques": {
-    name: "الشاشات والملحقات",
-    description: "شاشات ولوحات مفاتيح وفأرات.",
-    metaTitle: "شاشات ولوحات مفاتيح وفأرات",
+  "tv-box": {
+    name: "أجهزة استقبال",
+    description: "أجهزة Android TV وأجهزة تحكّم.",
+    metaTitle: "أجهزة Android TV وأجهزة تحكّم",
     metaDescription:
-      "شاشات 4K وOLED بتردد عالٍ، ولوحات مفاتيح وفأرات للعمل وللّعب. تفاصيل الأريحية والمنافذ والضمانات.",
+      "أجهزة Android TV بدقة 4K HDR وFull HD، وأجهزة تحكّم صوتية، وأجهزة تحكّم عالمية بديلة.",
+  },
+  supports: {
+    name: "حوامل",
+    description: "حوامل سيارة ومكتب وحلقات إمساك.",
+    metaTitle: "حوامل هاتف: سيارة، مكتب، دراجة",
+    metaDescription:
+      "حوامل مغناطيسية لفتحة التهوية، وحوامل مكتب من الألمنيوم قابلة للضبط، وحوامل دراجة، وحلقات لاصقة.",
   },
 };

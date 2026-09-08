@@ -83,7 +83,11 @@ for (const table of TABLES) {
 parts.push("COMMIT TRANSACTION;", "GO", "");
 
 fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
-fs.writeFileSync(OUTPUT, parts.join("\n"));
+// Marque d'ordre des octets : sans elle, sqlcmd lit le fichier comme de l'ANSI
+// et fait entrer chaque octet UTF-8 en base comme un caractere distinct —
+// l'arabe en ressort illisible et deux fois trop long. Le BOM lui fait detecter
+// l'UTF-8 seul, sans dependre du drapeau -f 65001.
+fs.writeFileSync(OUTPUT, "﻿" + parts.join("\n"), "utf8");
 
 console.log(`${OUTPUT}`);
 for (const [name, count] of Object.entries(counts)) {

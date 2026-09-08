@@ -319,10 +319,163 @@ export const SCREENS = {
   cyan: ["#04121a", "#0e7490", "#22d3ee"],
   gold: ["#1a1405", "#a16207", "#fcd34d"],
   slate: ["#0b0f16", "#334155", "#94a3b8"],
+  emerald: ["#022c22", "#047857", "#6ee7b7"],
 };
+
+/* ------------------------------------------------- accessoires de telephone */
+
+/**
+ * Coque : dos de telephone vu de face, avec sa decoupe d'objectifs et le
+ * rebord qui deborde de l'ecran. C'est la forme la plus declinee en couleurs,
+ * l'accent porte donc le corps entier plutot qu'un detail.
+ */
+function phoneCase(id, frame, accent) {
+  return wrap(id, [accent, frame, accent], `
+  <g>
+    <ellipse cx="400" cy="742" rx="150" ry="16" fill="#000" opacity="0.14"/>
+    <rect x="236" y="86" width="328" height="628" rx="72" fill="${accent}"/>
+    <rect x="236" y="86" width="328" height="628" rx="72" fill="url(#body-${id})"/>
+    <rect x="258" y="108" width="284" height="584" rx="56" fill="#000" opacity="0.16"/>
+    <rect x="272" y="122" width="256" height="556" rx="46" fill="${accent}"/>
+    <g transform="translate(296 148)">
+      <rect x="0" y="0" width="164" height="164" rx="42" fill="#000" opacity="0.28"/>
+      <circle cx="52" cy="52" r="30" fill="${frame}"/><circle cx="52" cy="52" r="13" fill="${accent}" opacity="0.7"/>
+      <circle cx="118" cy="52" r="30" fill="${frame}"/><circle cx="118" cy="52" r="13" fill="${accent}" opacity="0.7"/>
+      <circle cx="52" cy="118" r="30" fill="${frame}"/><circle cx="52" cy="118" r="13" fill="${accent}" opacity="0.7"/>
+      <circle cx="120" cy="120" r="14" fill="${frame}" opacity="0.8"/>
+    </g>
+    <rect x="566" y="238" width="14" height="76" rx="7" fill="${accent}"/>
+    <rect x="566" y="336" width="14" height="52" rx="7" fill="${accent}"/>
+  </g>`);
+}
+
+/** Verre trempe : la plaque, sa brillance en diagonale, et le telephone dessous. */
+function screenProtector(id, frame, accent) {
+  return wrap(id, [accent, frame, accent], `
+  <g>
+    <ellipse cx="400" cy="744" rx="150" ry="16" fill="#000" opacity="0.14"/>
+    <rect x="248" y="128" width="304" height="590" rx="60" fill="${frame}"/>
+    <rect x="248" y="128" width="304" height="590" rx="60" fill="url(#body-${id})"/>
+    <rect x="268" y="150" width="264" height="546" rx="46" fill="#000" opacity="0.35"/>
+    <g transform="translate(0 -46)">
+      <rect x="286" y="112" width="304" height="590" rx="52" fill="${accent}" opacity="0.20"/>
+      <rect x="286" y="112" width="304" height="590" rx="52" fill="none" stroke="${accent}" stroke-width="6" opacity="0.85"/>
+      <path d="M310 640 L560 190 L590 250 L346 686 Z" fill="#fff" opacity="0.16"/>
+      <circle cx="438" cy="152" r="10" fill="${accent}" opacity="0.6"/>
+    </g>
+  </g>`);
+}
+
+/** Chargeur secteur : bloc, broches, et port en facade. */
+function charger(id, frame, accent) {
+  return wrap(id, [accent, frame, accent], `
+  <g>
+    <ellipse cx="400" cy="686" rx="150" ry="16" fill="#000" opacity="0.14"/>
+    <rect x="352" y="112" width="30" height="118" rx="12" fill="${frame}" opacity="0.85"/>
+    <rect x="418" y="112" width="30" height="118" rx="12" fill="${frame}" opacity="0.85"/>
+    <rect x="238" y="214" width="324" height="330" rx="76" fill="${frame}"/>
+    <rect x="238" y="214" width="324" height="330" rx="76" fill="url(#body-${id})"/>
+    <rect x="330" y="470" width="140" height="34" rx="17" fill="#000" opacity="0.4"/>
+    <rect x="342" y="480" width="116" height="14" rx="7" fill="${accent}" opacity="0.75"/>
+    <circle cx="400" cy="350" r="52" fill="${accent}" opacity="0.22"/>
+    <path d="M412 306 L366 372 h34 l-12 60 46 -70 h-34 z" fill="${accent}"/>
+  </g>`);
+}
+
+/** Cable : la boucle, un connecteur a chaque bout. */
+function cable(id, frame, accent) {
+  return wrap(id, [accent, frame, accent], `
+  <g>
+    <ellipse cx="400" cy="716" rx="180" ry="16" fill="#000" opacity="0.12"/>
+    <path d="M228 196 C 228 430, 572 350, 572 592" fill="none" stroke="${frame}" stroke-width="30" stroke-linecap="round"/>
+    <path d="M228 196 C 228 430, 572 350, 572 592" fill="none" stroke="${accent}" stroke-width="10" stroke-linecap="round" opacity="0.45"/>
+    <g transform="translate(184 96)">
+      <rect x="0" y="0" width="88" height="116" rx="20" fill="${frame}"/>
+      <rect x="0" y="0" width="88" height="116" rx="20" fill="url(#body-${id})"/>
+      <rect x="20" y="26" width="48" height="20" rx="8" fill="${accent}" opacity="0.8"/>
+    </g>
+    <g transform="translate(528 588)">
+      <rect x="0" y="0" width="88" height="104" rx="30" fill="${frame}"/>
+      <rect x="0" y="0" width="88" height="104" rx="30" fill="url(#body-${id})"/>
+      <rect x="22" y="58" width="44" height="16" rx="8" fill="${accent}" opacity="0.8"/>
+    </g>
+  </g>`);
+}
+
+/** Batterie externe : bloc epais, temoins de charge, port lateral. */
+function powerBank(id, frame, accent) {
+  return wrap(id, [accent, frame, accent], `
+  <g>
+    <ellipse cx="400" cy="700" rx="170" ry="16" fill="#000" opacity="0.14"/>
+    <rect x="226" y="168" width="348" height="502" rx="62" fill="${frame}"/>
+    <rect x="226" y="168" width="348" height="502" rx="62" fill="url(#body-${id})"/>
+    <rect x="256" y="198" width="288" height="200" rx="40" fill="#000" opacity="0.22"/>
+    <text x="400" y="322" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="86" font-weight="700" fill="${accent}" opacity="0.9">20K</text>
+    <g transform="translate(292 456)">
+      <rect x="0" y="0" width="46" height="14" rx="7" fill="${accent}"/>
+      <rect x="58" y="0" width="46" height="14" rx="7" fill="${accent}"/>
+      <rect x="116" y="0" width="46" height="14" rx="7" fill="${accent}" opacity="0.45"/>
+      <rect x="174" y="0" width="46" height="14" rx="7" fill="${accent}" opacity="0.2"/>
+    </g>
+    <rect x="330" y="540" width="140" height="38" rx="19" fill="#000" opacity="0.35"/>
+    <rect x="344" y="552" width="112" height="14" rx="7" fill="${accent}" opacity="0.7"/>
+  </g>`);
+}
+
+/** Support : socle, bras incline, telephone pose dessus. */
+function phoneHolder(id, frame, accent) {
+  return wrap(id, [accent, frame, accent], `
+  <g>
+    <ellipse cx="400" cy="700" rx="190" ry="18" fill="#000" opacity="0.14"/>
+    <g transform="rotate(-12 400 380)">
+      <rect x="286" y="126" width="228" height="404" rx="34" fill="${accent}" opacity="0.28"/>
+      <rect x="286" y="126" width="228" height="404" rx="34" fill="none" stroke="${accent}" stroke-width="6"/>
+      <rect x="308" y="150" width="184" height="356" rx="22" fill="#000" opacity="0.35"/>
+    </g>
+    <path d="M330 560 L470 560 L500 648 L300 648 Z" fill="${frame}"/>
+    <path d="M330 560 L470 560 L500 648 L300 648 Z" fill="url(#body-${id})"/>
+    <rect x="268" y="640" width="264" height="34" rx="17" fill="${frame}"/>
+    <rect x="268" y="640" width="264" height="34" rx="17" fill="url(#body-${id})"/>
+    <rect x="352" y="516" width="96" height="58" rx="14" fill="${frame}"/>
+    <rect x="376" y="534" width="48" height="10" rx="5" fill="${accent}" opacity="0.7"/>
+  </g>`);
+}
+
+/** Boitier TV : le boitier, sa diode, et la telecommande posee a cote. */
+function tvBox(id, frame, accent) {
+  return wrap(id, [accent, frame, accent], `
+  <g>
+    <ellipse cx="400" cy="616" rx="210" ry="18" fill="#000" opacity="0.14"/>
+    <rect x="176" y="356" width="448" height="232" rx="40" fill="${frame}"/>
+    <rect x="176" y="356" width="448" height="232" rx="40" fill="url(#body-${id})"/>
+    <rect x="176" y="356" width="448" height="18" rx="9" fill="#fff" opacity="0.10"/>
+    <circle cx="238" cy="546" r="13" fill="${accent}"/>
+    <circle cx="238" cy="546" r="24" fill="${accent}" opacity="0.22"/>
+    <g transform="translate(316 408)">
+      <rect x="0" y="0" width="170" height="96" rx="18" fill="#000" opacity="0.28"/>
+      <path d="M42 26 h86 M42 48 h86 M42 70 h56" stroke="${accent}" stroke-width="10" stroke-linecap="round" opacity="0.75"/>
+    </g>
+    <g transform="translate(556 150)">
+      <rect x="0" y="0" width="96" height="248" rx="34" fill="${frame}"/>
+      <rect x="0" y="0" width="96" height="248" rx="34" fill="url(#body-${id})"/>
+      <circle cx="48" cy="62" r="26" fill="#000" opacity="0.3"/>
+      <circle cx="48" cy="62" r="11" fill="${accent}" opacity="0.8"/>
+      <rect x="26" y="118" width="44" height="12" rx="6" fill="${accent}" opacity="0.55"/>
+      <rect x="26" y="150" width="44" height="12" rx="6" fill="${accent}" opacity="0.35"/>
+      <rect x="26" y="182" width="44" height="12" rx="6" fill="${accent}" opacity="0.2"/>
+    </g>
+  </g>`);
+}
 
 const BUILDERS = {
   phone,
+  phoneCase,
+  screenProtector,
+  charger,
+  cable,
+  powerBank,
+  phoneHolder,
+  tvBox,
   phoneBack,
   foldable,
   tablet,
@@ -342,6 +495,13 @@ const BUILDERS = {
 /** Les formes sans ecran recoivent une couleur d'accent plutot qu'un degrade. */
 const FLAT = new Set([
   "phoneBack",
+  "phoneCase",
+  "screenProtector",
+  "charger",
+  "cable",
+  "powerBank",
+  "phoneHolder",
+  "tvBox",
   "headphones",
   "earbuds",
   "camera",

@@ -9,6 +9,15 @@ import path from "node:path";
 const ORIGIN = process.argv[2] ?? "http://localhost:3000";
 /** Toutes les pages vivent sous un prefixe de langue. */
 const BASE = `${ORIGIN}/fr`;
+/**
+ * Identifiants du back-office. Les valeurs par defaut sont celles du jeu de
+ * demonstration ; le deploiement demande de changer ce mot de passe avant
+ * d'ouvrir le site. Ces deux variables permettent alors de rejouer la suite
+ * contre la production sans reintroduire le mot de passe de demonstration.
+ */
+const ADMIN_EMAIL = process.env.PRAVIA_ADMIN_EMAIL ?? "admin@pravia.com";
+const ADMIN_PASSWORD = process.env.PRAVIA_ADMIN_PASSWORD ?? "admin123";
+
 const SHOTS = process.env.SHOT_DIR ?? path.join(process.cwd(), ".shots");
 fs.mkdirSync(SHOTS, { recursive: true });
 
@@ -195,8 +204,8 @@ try {
 
   await context.clearCookies();
   await page.goto(`${BASE}/connexion`, { waitUntil: "networkidle" });
-  await page.fill("#email", "admin@pravia.com");
-  await page.fill("#password", "admin123");
+  await page.fill("#email", ADMIN_EMAIL);
+  await page.fill("#password", ADMIN_PASSWORD);
   await page.getByRole("button", { name: /Se connecter/ }).click();
   await page.waitForURL("**/admin", { timeout: 15000 });
   check("Connexion admin reussie", page.url().endsWith("/admin"));

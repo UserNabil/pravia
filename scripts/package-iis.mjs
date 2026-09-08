@@ -43,6 +43,17 @@ fs.rmSync(OUT, { recursive: true, force: true });
 // 1. Serveur autonome et dependances tracees par Next.
 copyDir(STANDALONE, OUT);
 
+// Next recopie les fichiers .env du depot dans sa sortie autonome. En
+// production ils n'ont rien a faire la : ils portent l'URL de la base SQLite de
+// developpement et le secret de session local, et Next les relit au demarrage.
+// La configuration de production vient de .env.production, ecrit sur le serveur.
+for (const entry of fs.readdirSync(OUT)) {
+  if (entry === ".env" || entry.startsWith(".env.")) {
+    fs.rmSync(path.join(OUT, entry), { force: true });
+    console.log(`  ${entry} de developpement retire du paquet`);
+  }
+}
+
 // 2. Fichiers statiques : Next les laisse volontairement de cote.
 copyDir(path.join(ROOT, ".next", "static"), path.join(OUT, ".next", "static"));
 
@@ -85,6 +96,9 @@ const required = [
   "web.config",
   "package.json",
   ".next/static",
+  // Reclame par le navigateur avant toute balise <link> : s'il manque, la
+  // requete part vers Node et rend du HTML au lieu d'une icone.
+  "public/favicon.ico",
   "public/favicon-32.png",
   "public/icon.png",
   "public/icon-192.png",

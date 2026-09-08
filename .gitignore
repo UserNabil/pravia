@@ -33,3 +33,7 @@ Thumbs.db
 # Artefacts de deploiement
 dist-iis
 dist-sql
+
+# Sauvegardes de configuration du tunnel, produites a chaque execution des
+# scripts de deploiement : artefacts d exploitation, pas du code.
+deploy/tunnel-config-avant-*.json

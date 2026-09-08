@@ -25,11 +25,17 @@ const db = new PrismaClient({
 
 /** Ordre d'insertion respectant les cles etrangeres. */
 const TABLES = [
+  // Le decoupage administratif d'abord : Commune reference Wilaya, et les
+  // adresses comme les commandes portent un code de wilaya.
+  { name: "Wilaya", read: () => db.wilaya.findMany() },
+  { name: "Commune", read: () => db.commune.findMany() },
   { name: "Category", read: () => db.category.findMany() },
   { name: "Brand", read: () => db.brand.findMany() },
   { name: "User", read: () => db.user.findMany() },
   { name: "Address", read: () => db.address.findMany() },
   { name: "Product", read: () => db.product.findMany() },
+  // Les declinaisons precedent le panier et les commandes, qui les referencent.
+  { name: "ProductVariant", read: () => db.productVariant.findMany() },
   { name: "ProductImage", read: () => db.productImage.findMany() },
   { name: "ProductSpec", read: () => db.productSpec.findMany() },
   // Traductions : elles dependent de leur entite parente, donc juste apres elle.
@@ -108,7 +114,11 @@ async function main() {
   parts.push("GO");
   parts.push("");
 
-  fs.writeFileSync(OUTPUT, parts.join("\n"), "utf8");
+  // Marque d'ordre des octets : sans elle, sqlcmd lit le fichier comme de
+  // l'ANSI et fait entrer chaque octet UTF-8 en base comme un caractere
+  // distinct — l'arabe en ressort illisible et deux fois trop long. Le BOM lui
+  // fait detecter l'UTF-8 seul, sans dependre du drapeau -f 65001.
+  fs.writeFileSync(OUTPUT, "﻿" + parts.join("\n"), "utf8");
 
   const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
   console.log(`Export ecrit : ${OUTPUT}`);

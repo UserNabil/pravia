@@ -38,27 +38,23 @@ const LONG_TEXT = [
  * l'autre en NoAction : le nettoyage correspondant est fait explicitement dans
  * les actions serveur (voir deleteProductAction et deleteUserAction).
  */
+/**
+ * SQL Server refuse plusieurs chemins de suppression en cascade aboutissant a
+ * la meme table. On conserve la cascade la plus naturelle et on bascule les
+ * autres en NoAction : le nettoyage correspondant est fait explicitement dans
+ * les actions serveur (voir deleteProductAction et deleteUserAction).
+ *
+ * Le repere est le nom du champ, pas la ligne entiere : Prisma realigne les
+ * colonnes des qu'un champ change de longueur, et une comparaison au caractere
+ * pres se casserait a chaque retouche du schema.
+ */
 const RELATION_OVERRIDES = [
-  {
-    model: "CartItem",
-    line: 'product Product @relation(fields: [productId], references: [id], onDelete: Cascade)',
-    replacement: 'product Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)',
-  },
-  {
-    model: "WishlistItem",
-    line: 'product Product @relation(fields: [productId], references: [id], onDelete: Cascade)',
-    replacement: 'product Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)',
-  },
-  {
-    model: "Review",
-    line: 'user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)',
-    replacement: 'user    User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)',
-  },
-  {
-    model: "OrderItem",
-    line: 'product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)',
-    replacement: 'product Product? @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)',
-  },
+  { model: "CartItem", field: "product" },
+  { model: "CartItem", field: "variant" },
+  { model: "WishlistItem", field: "product" },
+  { model: "Review", field: "user" },
+  { model: "OrderItem", field: "product" },
+  { model: "OrderItem", field: "variant" },
 ];
 
 /**
@@ -149,7 +145,11 @@ function editModel(schema, model, edit) {
 
 function generate() {
   if (!fs.existsSync(SOURCE)) throw new Error(`Schema source introuvable : ${SOURCE}`);
-  let schema = fs.readFileSync(SOURCE, "utf8");
+  // Un clone Windows livre le schema en CRLF. Les traitements ci-dessous
+  // decoupent sur \n et ajoutent des attributs en fin de ligne : sans
+  // normalisation, @db.NVarChar atterrit apres le \r, donc sur une ligne a lui,
+  // et Prisma rejette le fichier. On travaille en LF, que Prisma accepte.
+  let schema = fs.readFileSync(SOURCE, "utf8").replace(/\r\n/g, "\n");
 
   // 1. Fournisseur et emplacement du client generé.
   schema = schema.replace('provider = "sqlite"', 'provider = "sqlserver"');
@@ -183,12 +183,19 @@ function generate() {
   // 5. Actions referentielles compatibles avec SQL Server.
   for (const override of RELATION_OVERRIDES) {
     schema = editModel(schema, override.model, (body) => {
-      if (!body.includes(override.line)) {
+      // Le champ, son type, puis son @relation : on remplace la seule clause
+      // onDelete/onUpdate, sans toucher au reste de la ligne.
+      const motif = new RegExp(
+        String.raw`(^\s+${override.field}\s+\S+\s+@relation\([^)]*?)` +
+          String.raw`(,\s*onDelete:\s*\w+)?(,\s*onUpdate:\s*\w+)?(\))`,
+        "m"
+      );
+      if (!motif.test(body)) {
         throw new Error(
-          `Relation attendue introuvable dans ${override.model} : le schema source a change.`
+          `Relation ${override.model}.${override.field} introuvable : le schema source a change.`
         );
       }
-      return body.replace(override.line, override.replacement);
+      return body.replace(motif, "$1, onDelete: NoAction, onUpdate: NoAction$4");
     });
   }
 
