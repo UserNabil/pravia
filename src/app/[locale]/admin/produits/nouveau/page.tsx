@@ -58,7 +58,7 @@ export default async function NewProductPage() {
           storage: "",
           color: "",
           carrier: "",
-          imageUrl: "",
+          images: [],
           metaTitle: "",
           metaDescription: "",
           ogImage: "",

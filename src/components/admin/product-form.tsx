@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Loader2, Plus, X } from "lucide-react";
@@ -11,6 +10,7 @@ import { cn } from "@/lib/format";
 import { FormFeedback } from "./form-feedback";
 import { TranslationFields, type TranslationValues } from "./translation-fields";
 import { VariantRows, type LigneVariante } from "./variant-rows";
+import { ImageRows, type LigneImage } from "./image-rows";
 
 export type ProductFormValues = {
   id?: string;
@@ -30,7 +30,7 @@ export type ProductFormValues = {
   storage: string;
   color: string;
   carrier: string;
-  imageUrl: string;
+  images: LigneImage[];
   metaTitle: string;
   metaDescription: string;
   ogImage: string;
@@ -66,39 +66,6 @@ export function ProductForm({
   const [specs, setSpecs] = useState(
     values.specs.length ? values.specs : [{ label: "", value: "" }]
   );
-  const [preview, setPreview] = useState(values.imageUrl);
-  const [envoi, setEnvoi] = useState(false);
-  const [erreurEnvoi, setErreurEnvoi] = useState<string | null>(null);
-
-  /**
-   * Depose le fichier puis renseigne le champ d'adresse. Le visuel est stocke
-   * hors du dossier deploye : il survit aux mises a jour, contrairement a un
-   * fichier depose dans public/ que l'installation ecraserait.
-   */
-  async function televerser(fichier: File) {
-    setErreurEnvoi(null);
-    setEnvoi(true);
-    try {
-      const corps = new FormData();
-      corps.append("fichier", fichier);
-      const reponse = await fetch("/api/admin/media", { method: "POST", body: corps });
-      const donnees = await reponse.json();
-
-      if (!reponse.ok) {
-        setErreurEnvoi(t(`upload_${donnees.erreur ?? "illisible"}`));
-        return;
-      }
-
-      // Le champ d'adresse est controle : le mettre a jour suffit, il se
-      // remplit et sera soumis avec le formulaire.
-      setPreview(donnees.url);
-    } catch {
-      setErreurEnvoi(t("upload_illisible"));
-    } finally {
-      setEnvoi(false);
-    }
-  }
-
   return (
     <form action={formAction} className="grid gap-5 xl:grid-cols-[1fr_20rem] xl:items-start">
       <div className="space-y-5">
@@ -249,6 +216,8 @@ export function ProductForm({
           </div>
           <p className="mt-2 text-xs text-muted-2">{t("emptyRowsIgnored")}</p>
         </section>
+
+        <ImageRows initiales={values.images} />
 
         <VariantRows initiales={values.variants} />
 
@@ -401,65 +370,6 @@ export function ProductForm({
           </div>
         </section>
 
-        <section className="surface-card p-5">
-          <h2 className="text-sm font-bold">{t("mainImage")}</h2>
-
-          <div className="mt-4 aspect-square rounded-xl bg-surface-2 p-4">
-            {preview ? (
-              <Image
-                src={preview}
-                alt={t("preview")}
-                width={280}
-                height={280}
-                className="size-full object-contain"
-                unoptimized
-              />
-            ) : (
-              <div className="flex size-full items-center justify-center text-xs text-muted-2">
-                {t("noImage")}
-              </div>
-            )}
-          </div>
-
-          <div className="mt-3">
-            <label htmlFor="fichierImage" className="label">
-              {t("uploadLabel")}
-            </label>
-            <input
-              id="fichierImage"
-              type="file"
-              accept="image/webp,image/avif,image/jpeg,image/png,image/svg+xml"
-              disabled={envoi}
-              onChange={(event) => {
-                const fichier = event.target.files?.[0];
-                if (fichier) void televerser(fichier);
-                event.target.value = "";
-              }}
-              className="input file:me-3 file:rounded-md file:border-0 file:bg-surface-3 file:px-3 file:py-1 file:text-xs"
-            />
-            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-2">
-              {envoi && <Loader2 className="size-3 animate-spin" />}
-              {envoi ? t("uploadPending") : t("uploadHint")}
-            </p>
-            {erreurEnvoi && <p className="mt-1 text-xs text-danger">{erreurEnvoi}</p>}
-          </div>
-
-          <div className="mt-3">
-            <label htmlFor="imageUrl" className="label">
-              {t("imageUrl")}
-            </label>
-            <input
-              id="imageUrl"
-              name="imageUrl"
-              value={preview}
-              onChange={(event) => setPreview(event.target.value)}
-              placeholder={t("imageUrlPlaceholder")}
-              className="input"
-              dir="ltr"
-            />
-            <p className="mt-1.5 text-xs text-muted-2">{t("imageUrlHint")}</p>
-          </div>
-        </section>
       </aside>
     </form>
   );

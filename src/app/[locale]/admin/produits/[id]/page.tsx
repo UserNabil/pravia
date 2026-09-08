@@ -100,7 +100,7 @@ export default async function EditProductPage({
           storage: product.storage ?? "",
           color: product.color ?? "",
           carrier: product.carrier ?? "",
-          imageUrl: product.images[0]?.url ?? "",
+          images: product.images.map((image) => ({ url: image.url, alt: image.alt })),
           metaTitle: product.metaTitle ?? "",
           metaDescription: product.metaDescription ?? "",
           ogImage: product.ogImage ?? "",

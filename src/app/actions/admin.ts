@@ -56,7 +56,6 @@ const productSchema = z.object({
   storage: z.string().optional(),
   color: z.string().optional(),
   carrier: z.string().optional(),
-  imageUrl: z.string().optional(),
   metaTitle: z.string().optional(),
   metaDescription: z.string().optional(),
   ogImage: z.string().optional(),
@@ -80,7 +79,6 @@ function readProductForm(formData: FormData) {
     storage: String(formData.get("storage") ?? "").trim() || undefined,
     color: String(formData.get("color") ?? "").trim() || undefined,
     carrier: String(formData.get("carrier") ?? "").trim() || undefined,
-    imageUrl: String(formData.get("imageUrl") ?? "").trim() || undefined,
     metaTitle: String(formData.get("metaTitle") ?? "").trim() || undefined,
     metaDescription: String(formData.get("metaDescription") ?? "").trim() || undefined,
     ogImage: String(formData.get("ogImage") ?? "").trim() || undefined,
@@ -136,14 +134,12 @@ export async function createProductAction(_prev: AdminState, formData: FormData)
       readyToShip: formData.get("readyToShip") === "on",
       featured: formData.get("featured") === "on",
       active: formData.get("active") === "on",
-      images: data.imageUrl
-        ? { create: [{ url: data.imageUrl, alt: data.title, sortOrder: 0 }] }
-        : undefined,
     },
   });
 
   await saveSpecs(product.id, formData);
   await saveVariants(product.id, formData);
+  await saveImages(product.id, formData, data.title);
   await syncProductSearchText(product.id);
 
   refreshAdmin("/produits");
@@ -197,20 +193,9 @@ export async function updateProductAction(
     },
   });
 
-  if (data.imageUrl) {
-    const first = await db.productImage.findFirst({
-      where: { productId },
-      orderBy: { sortOrder: "asc" },
-    });
-    if (first) await db.productImage.update({ where: { id: first.id }, data: { url: data.imageUrl } });
-    else
-      await db.productImage.create({
-        data: { productId, url: data.imageUrl, alt: data.title, sortOrder: 0 },
-      });
-  }
-
   await saveSpecs(productId, formData);
   await saveVariants(productId, formData);
+  await saveImages(productId, formData, data.title);
   await saveProductTranslations(productId, formData);
   await syncProductSearchText(productId);
 
@@ -337,6 +322,52 @@ async function saveVariants(productId: string, formData: FormData) {
       where: { id: productId },
       data: { stock: lignes.reduce((somme, l) => somme + l.stock, 0) },
     });
+  }
+}
+
+/**
+ * Enregistre la galerie d'un produit.
+ *
+ * Contrairement aux declinaisons, qu'une commande designe par identifiant, un
+ * visuel n'est reference par rien : on remplace donc la liste en bloc. Le
+ * premier de la liste est la vignette du catalogue.
+ */
+async function saveImages(productId: string, formData: FormData, titre: string) {
+  // Champ absent : le formulaire n'a pas de galerie, on ne touche a rien
+  // plutot que d'effacer les visuels existants.
+  if (!formData.has("imageUrl")) return;
+
+  const urls = formData.getAll("imageUrl").map((v) => String(v).trim());
+  const libelles = formData.getAll("imageAlt").map((v) => String(v).trim());
+
+  const vues = new Set<string>();
+  const lignes: { url: string; alt: string; sortOrder: number }[] = [];
+
+  for (const [index, url] of urls.entries()) {
+    // Une meme adresse deux fois brouillerait la galerie et le lien avec la
+    // couleur, qui se fait par adresse.
+    if (!url || vues.has(url)) continue;
+    vues.add(url);
+    lignes.push({ url, alt: libelles[index] || titre, sortOrder: lignes.length });
+  }
+
+  // La photo d'une couleur rejoint la galerie : c'est en la retrouvant par son
+  // adresse que le choix d'une teinte amene son visuel au premier plan.
+  const teintes = await db.productVariant.findMany({
+    where: { productId, imageUrl: { not: null } },
+    orderBy: { sortOrder: "asc" },
+    select: { imageUrl: true, name: true },
+  });
+  for (const teinte of teintes) {
+    const url = teinte.imageUrl as string;
+    if (vues.has(url)) continue;
+    vues.add(url);
+    lignes.push({ url, alt: `${titre} - ${teinte.name}`, sortOrder: lignes.length });
+  }
+
+  await db.productImage.deleteMany({ where: { productId } });
+  if (lignes.length) {
+    await db.productImage.createMany({ data: lignes.map((l) => ({ ...l, productId })) });
   }
 }
 
