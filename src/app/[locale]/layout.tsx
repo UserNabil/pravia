@@ -118,6 +118,12 @@ export default async function LocaleLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Arabic:wght@400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
+        {/* web.config renvoie toutes les requetes vers Node : sans fichier
+            favicon.ico, un navigateur qui le reclame — ce que font la plupart
+            avant meme de lire ces balises — recevait la page d'accueil en HTML
+            et n'affichait aucune icone. Le fichier existe desormais et
+            embarque les tailles 16, 32, 48 et 64. */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
         <link rel="icon" href="/icon.png" sizes="512x512" type="image/png" />
         <link rel="apple-touch-icon" href="/icon-192.png" />

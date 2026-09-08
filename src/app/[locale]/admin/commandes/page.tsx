@@ -1,5 +1,5 @@
 import { Link } from "@/i18n/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Eye, Search } from "lucide-react";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
@@ -21,11 +21,16 @@ export default async function AdminOrdersPage({
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ q?: string; statut?: string; page?: string }>;
 }) {
-  const [{ locale: rawLocale }, sp, t, tStatus] = await Promise.all([
-    params,
+  const { locale: rawLocale } = await params;
+  // La langue est declaree avant toute traduction : getTranslations la lit
+  // au moment de son appel, donc l'attendre dans le meme Promise.all que
+  // params la ferait retomber sur la langue par defaut.
+  setRequestLocale(toLocale(rawLocale));
+
+  const [sp, t, tStatus] = await Promise.all([
     searchParams,
     getTranslations("admin.orders"),
-    getTranslations("orderStatus"),
+    getTranslations("orderStatus")
   ]);
   const tag = LOCALE_TAGS[toLocale(rawLocale)];
   const statusOptions = ORDER_STATUSES.map((status) => ({ value: status, label: tStatus(status) }));
@@ -36,7 +41,10 @@ export default async function AdminOrdersPage({
   if (sp.q) {
     where.OR = [
       { number: { contains: sp.q } },
-      { shipFullName: { contains: sp.q } },
+      { shipFirstName: { contains: sp.q } },
+      { shipLastName: { contains: sp.q } },
+      { shipCommune: { contains: sp.q } },
+      { shipWilaya: { contains: sp.q } },
       { user: { email: { contains: sp.q } } },
       { user: { name: { contains: sp.q } } },
     ];
@@ -145,14 +153,18 @@ export default async function AdminOrdersPage({
                 <div className="flex items-center gap-2">
                   <span
                     className="flex size-7 shrink-0 items-center justify-center rounded-full text-[0.625rem] font-bold text-white"
-                    style={{ backgroundColor: order.user.avatarColor }}
+                    style={{ backgroundColor: order.user?.avatarColor ?? "#64748b" }}
                   >
-                    {order.user.name.slice(0, 1)}
+                    {(order.user?.name ?? order.shipFirstName).slice(0, 1)}
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-medium">{order.user.name}</p>
-                    <p className="truncate text-xs text-muted-2" dir="ltr">
-                      {order.user.email}
+                    <p className="truncate text-xs font-medium">
+                      {order.user?.name ?? `${order.shipFirstName} ${order.shipLastName}`}
+                    </p>
+                    {/* Une commande sans compte n'a pas d'adresse e-mail : on
+                        montre la destination, plus utile a la preparation. */}
+                    <p className="truncate text-xs text-muted-2" dir={order.user ? "ltr" : undefined}>
+                      {order.user?.email ?? `${order.shipCommune}, ${order.shipWilaya}`}
                     </p>
                   </div>
                 </div>

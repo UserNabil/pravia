@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { useFormatter, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
+import { useFormat } from "@/lib/use-format";
 import { useRouter } from "@/i18n/navigation";
 import { ChevronDown, Clock, Loader2, Search, Tag, X } from "lucide-react";
 import { cn } from "@/lib/format";
@@ -51,7 +52,7 @@ export function SearchBar({
   className?: string;
 }) {
   const t = useTranslations("search");
-  const format = useFormatter();
+  const format = useFormat();
   const router = useRouter();
   const params = useSearchParams();
 
@@ -340,7 +341,7 @@ export function SearchBar({
                     </span>
                   </span>
                   <span className="shrink-0 text-sm font-semibold tabular-nums">
-                    {format.number(product.price / 100, "currency")}
+                    {format.price(product.price)}
                   </span>
                 </button>
               ))}

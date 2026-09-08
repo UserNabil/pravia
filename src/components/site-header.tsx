@@ -4,7 +4,7 @@ import { Heart, LayoutGrid, ShoppingBag } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getCartCount } from "@/lib/queries";
+import { getCurrentCartCount } from "@/lib/current-cart";
 import { getTranslatedCategories } from "@/lib/content";
 import type { Locale } from "@/i18n/routing";
 import { Logo } from "./logo";
@@ -13,6 +13,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { LanguageSwitcher } from "./language-switcher";
 import { UserMenu } from "./user-menu";
 import { MobileNav } from "./mobile-nav";
+import { MobileTabBar } from "./mobile-tabbar";
 import { CategoryMenu } from "./category-menu";
 
 export async function SiteHeader({ locale }: { locale: Locale }) {
@@ -27,24 +28,24 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
     db.setting.findMany({ where: { key: { in: [`banner.text.${locale}`, "banner.text"] } } }),
   ]);
 
-  const [cartCount, wishlistCount] = user
-    ? await Promise.all([
-        getCartCount(user.id),
-        db.wishlistItem.count({ where: { userId: user.id } }),
-      ])
-    : [0, 0];
+  // Le panier se compte pour tout le monde : un visiteur sans compte en a un,
+  // garde dans un cookie. Les favoris, eux, restent lies a un compte.
+  const [cartCount, wishlistCount] = await Promise.all([
+    getCurrentCartCount(),
+    user ? db.wishlistItem.count({ where: { userId: user.id } }) : Promise.resolve(0),
+  ]);
 
   const banner =
     bannerRows.find((row) => row.key === `banner.text.${locale}`)?.value?.trim() ||
     bannerRows.find((row) => row.key === "banner.text")?.value?.trim() ||
     null;
 
+  // Une boutique d'accessoires n'a que faire d'un « espace vendeur » ni d'une
+  // « Trade Assurance » : ces entrees venaient d'un modele de place de marche.
   const navLinks = [
     { href: "/produits?tri=best-sellers", label: t("bestSellers") },
     { href: "/produits?tri=newest", label: t("newArrivals") },
-    { href: "/produits?assurance=1", label: t("tradeAssurance") },
     { href: "/aide", label: t("customerService") },
-    { href: "/aide#vendeurs", label: t("sellerArea") },
   ];
 
   return (
@@ -117,6 +118,8 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
           </Link>
         </div>
       </nav>
+
+      <MobileTabBar cartCount={cartCount} />
     </header>
   );
 }

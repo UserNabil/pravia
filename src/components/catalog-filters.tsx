@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
+import { useFormat } from "@/lib/use-format";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, SlidersHorizontal, X, Zap } from "lucide-react";
 import { CategoryIcon } from "./category-icon";
@@ -81,7 +82,7 @@ function FilterPanel({
 }) {
   const t = useTranslations("catalogue");
   const tCondition = useTranslations("condition");
-  const format = useFormatter();
+  const format = useFormat();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -254,11 +255,11 @@ function FilterPanel({
           className="h-6 w-full cursor-pointer accent-[var(--primary)]"
         />
         <div className="mt-1.5 flex items-center justify-between text-xs text-muted-2">
-          <span>{format.number(facets.minPrice / 100, "currency")}</span>
+          <span>{format.price(facets.minPrice)}</span>
           <span className="rounded-full bg-surface-3 px-2 py-0.5 font-semibold text-foreground">
-            {format.number(priceMax / 100, "currency")}
+            {format.price(priceMax)}
           </span>
-          <span>{format.number(facets.maxPrice / 100, "currency")}</span>
+          <span>{format.price(facets.maxPrice)}</span>
         </div>
       </Group>
 

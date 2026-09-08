@@ -1,5 +1,6 @@
 import Image from "next/image";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getFormat } from "@/lib/server-format";
 import { ShieldCheck, Zap } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { RatingBadge } from "./stars";
@@ -38,7 +39,7 @@ export async function ProductCard({
     getTranslations("product"),
     getTranslations("condition"),
     getTranslations("common"),
-    getFormatter(),
+    getFormat(),
   ]);
 
   const image = product.images[0];
@@ -48,7 +49,7 @@ export async function ProductCard({
       : 0;
 
   const attributes = [product.carrier, product.storage, product.color].filter(Boolean).join(" | ");
-  const price = (value: number) => format.number(value / 100, "currency");
+  const price = (value: number) => format.price(value);
 
   return (
     <article className="group surface-card flex flex-col overflow-hidden transition-colors hover:border-border-strong">

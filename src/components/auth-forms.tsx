@@ -63,8 +63,6 @@ export function LoginForm({
 
       {children}
 
-      <DemoAccounts />
-
       <p className="text-center text-sm text-muted-2">
         {t("noAccount")}{" "}
         <Link href="/inscription" className="font-medium text-primary hover:underline">
@@ -189,43 +187,3 @@ function PasswordField({
   );
 }
 
-/** Raccourci de demonstration : pre-remplit le formulaire de connexion. */
-function DemoAccounts() {
-  const t = useTranslations("auth");
-
-  function fill(email: string, password: string) {
-    const form = document.querySelector("form");
-    const emailInput = form?.querySelector<HTMLInputElement>("#email");
-    const passwordInput = form?.querySelector<HTMLInputElement>("#password");
-    if (emailInput) emailInput.value = email;
-    if (passwordInput) passwordInput.value = password;
-  }
-
-  return (
-    <div className="rounded-xl border border-dashed border-border p-3">
-      <p className="text-xs font-semibold text-muted">{t("demoAccounts")}</p>
-      <div className="mt-2 grid gap-1.5">
-        <button
-          type="button"
-          onClick={() => fill("admin@pravia.com", "admin123")}
-          className="flex items-center justify-between rounded-lg bg-surface-2 px-2.5 py-1.5 text-xs transition-colors hover:bg-surface-3"
-        >
-          <span className="font-medium">{t("demoAdmin")}</span>
-          <span className="text-muted-2" dir="ltr">
-            admin@pravia.com
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => fill("camille@exemple.fr", "demo1234")}
-          className="flex items-center justify-between rounded-lg bg-surface-2 px-2.5 py-1.5 text-xs transition-colors hover:bg-surface-3"
-        >
-          <span className="font-medium">{t("demoCustomer")}</span>
-          <span className="text-muted-2" dir="ltr">
-            camille@exemple.fr
-          </span>
-        </button>
-      </div>
-    </div>
-  );
-}

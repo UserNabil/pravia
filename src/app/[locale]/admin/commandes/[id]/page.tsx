@@ -1,7 +1,7 @@
 import { Link } from "@/i18n/navigation";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ChevronLeft, Mail, MapPin, Package, Phone } from "lucide-react";
 import { db } from "@/lib/db";
 import { PageHeader, StatusBadge } from "@/components/admin/ui";
@@ -17,12 +17,15 @@ export default async function AdminOrderDetailPage({
 }: {
   params: Promise<{ id: string; locale: string }>;
 }) {
-  const [{ id, locale: rawLocale }, t, tStatus, tCountries] = await Promise.all([
+  const [{ id, locale: rawLocale }, t, tStatus] = await Promise.all([
     params,
     getTranslations("admin.orderDetail"),
     getTranslations("orderStatus"),
-    getTranslations("countries"),
   ]);
+  // Declare la langue a next-intl. Les segments rendent en parallele : sans
+  // cet appel, une page peut lire la langue avant que sa mise en page ne
+  // l'ait posee et retomber sur la langue par defaut.
+  setRequestLocale(toLocale(rawLocale));
   const tag = LOCALE_TAGS[toLocale(rawLocale)];
 
   const order = await db.order.findUnique({
@@ -35,8 +38,10 @@ export default async function AdminOrderDetailPage({
 
   if (!order) notFound();
 
-  const customerOrders = await db.order.count({ where: { userId: order.userId } });
-  const known = ["France", "Belgique", "Suisse", "Luxembourg", "Espagne", "Allemagne"];
+  // Une commande peut avoir ete passee sans compte : userId est alors nul.
+  const customerOrders = order.userId
+    ? await db.order.count({ where: { userId: order.userId } })
+    : 0;
 
   return (
     <div>
@@ -180,43 +185,51 @@ export default async function AdminOrderDetailPage({
             <div className="mt-4 flex items-center gap-3">
               <span
                 className="flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-                style={{ backgroundColor: order.user.avatarColor }}
+                style={{ backgroundColor: order.user?.avatarColor ?? "#64748b" }}
               >
-                {order.user.name.slice(0, 2).toUpperCase()}
+                {(order.user?.name ?? `${order.shipFirstName} ${order.shipLastName}`)
+                  .slice(0, 2)
+                  .toUpperCase()}
               </span>
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{order.user.name}</p>
+                <p className="truncate text-sm font-medium">
+                  {order.user?.name ?? `${order.shipFirstName} ${order.shipLastName}`}
+                </p>
                 <p className="text-xs text-muted-2">
-                  {t("customerOrders", { count: customerOrders })}
+                  {order.user ? t("customerOrders", { count: customerOrders }) : t("guestOrder")}
                 </p>
               </div>
             </div>
 
-            <ul className="mt-4 space-y-2 text-sm">
-              <li className="flex items-center gap-2 text-muted">
-                <Mail className="size-3.5 shrink-0" />
-                <a
-                  href={`mailto:${order.user.email}`}
-                  className="truncate hover:text-foreground"
-                  dir="ltr"
-                >
-                  {order.user.email}
-                </a>
-              </li>
-              {(order.shipPhone || order.user.phone) && (
-                <li className="flex items-center gap-2 text-muted">
-                  <Phone className="size-3.5 shrink-0" />
-                  <span dir="ltr">{order.shipPhone ?? order.user.phone}</span>
-                </li>
-              )}
-            </ul>
+            {order.user && (
+              <>
+                <ul className="mt-4 space-y-2 text-sm">
+                  <li className="flex items-center gap-2 text-muted">
+                    <Mail className="size-3.5 shrink-0" />
+                    <a
+                      href={`mailto:${order.user.email}`}
+                      className="truncate hover:text-foreground"
+                      dir="ltr"
+                    >
+                      {order.user.email}
+                    </a>
+                  </li>
+                  {order.user.phone && (
+                    <li className="flex items-center gap-2 text-muted">
+                      <Phone className="size-3.5 shrink-0" />
+                      <span dir="ltr">{order.user.phone}</span>
+                    </li>
+                  )}
+                </ul>
 
-            <Link
-              href={`/admin/clients?q=${order.user.email}`}
-              className="btn btn-secondary mt-4 w-full"
-            >
-              {t("customerSheet")}
-            </Link>
+                <Link
+                  href={`/admin/clients?q=${order.user.email}`}
+                  className="btn btn-secondary mt-4 w-full"
+                >
+                  {t("customerSheet")}
+                </Link>
+              </>
+            )}
           </section>
 
           <section className="surface-card p-5">
@@ -225,14 +238,12 @@ export default async function AdminOrderDetailPage({
               {t("shippingAddress")}
             </h2>
             <address className="mt-3 space-y-0.5 text-sm not-italic text-muted">
-              <p className="font-medium text-foreground">{order.shipFullName}</p>
-              <p>{order.shipLine1}</p>
-              {order.shipLine2 && <p>{order.shipLine2}</p>}
-              <p>
-                {order.shipZip} {order.shipCity}
+              <p className="font-medium text-foreground">
+                {order.shipFirstName} {order.shipLastName}
               </p>
+              <p>{order.shipCommune}</p>
               <p>
-                {known.includes(order.shipCountry) ? tCountries(order.shipCountry) : order.shipCountry}
+                {String(order.shipWilayaCode).padStart(2, "0")} {order.shipWilaya}
               </p>
             </address>
           </section>
@@ -245,7 +256,8 @@ export default async function AdminOrderDetailPage({
             <dl className="mt-3 space-y-2 text-sm">
               <div className="flex justify-between gap-3">
                 <dt className="text-muted">{t("payment")}</dt>
-                <dd className="font-medium">{order.paymentMethod}</dd>
+                {/* Un seul mode accepte : especes a la livraison. */}
+                <dd className="font-medium">Especes a la livraison</dd>
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-muted">{t("trackingShort")}</dt>

@@ -1,6 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Heart } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -17,12 +17,17 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function WishlistPage({ params }: { params: Promise<{ locale: string }> }) {
-  const [{ locale: rawLocale }, t, tAccount, tCatalogue, user] = await Promise.all([
-    params,
+  const { locale: rawLocale } = await params;
+  // La langue est declaree avant toute traduction : getTranslations la lit
+  // au moment de son appel, donc l'attendre dans le meme Promise.all que
+  // params la ferait retomber sur la langue par defaut.
+  setRequestLocale(toLocale(rawLocale));
+
+  const [t, tAccount, tCatalogue, user] = await Promise.all([
     getTranslations("favourites"),
     getTranslations("account"),
     getTranslations("catalogue"),
-    getCurrentUser(),
+    getCurrentUser()
   ]);
   const locale = toLocale(rawLocale);
 

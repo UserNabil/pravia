@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Loader2, Plus, X } from "lucide-react";
 import type { AdminState } from "@/app/actions/admin";
-import { CONDITIONS } from "@/lib/constants";
+import { CONDITIONS, WARRANTY_UNITS } from "@/lib/constants";
 import { cn } from "@/lib/format";
 import { FormFeedback } from "./form-feedback";
 import { TranslationFields, type TranslationValues } from "./translation-fields";
@@ -22,7 +22,8 @@ export type ProductFormValues = {
   sku: string;
   condition: string;
   minOrder: string;
-  warrantyMonths: string;
+  warrantyValue: string;
+  warrantyUnit: string;
   categoryId: string;
   brandId: string;
   storage: string;
@@ -58,11 +59,43 @@ export function ProductForm({
 }) {
   const t = useTranslations("admin.productForm");
   const tCondition = useTranslations("condition");
+  const tWarranty = useTranslations("warrantyUnit");
   const [state, formAction, pending] = useActionState(action, {});
   const [specs, setSpecs] = useState(
     values.specs.length ? values.specs : [{ label: "", value: "" }]
   );
   const [preview, setPreview] = useState(values.imageUrl);
+  const [envoi, setEnvoi] = useState(false);
+  const [erreurEnvoi, setErreurEnvoi] = useState<string | null>(null);
+
+  /**
+   * Depose le fichier puis renseigne le champ d'adresse. Le visuel est stocke
+   * hors du dossier deploye : il survit aux mises a jour, contrairement a un
+   * fichier depose dans public/ que l'installation ecraserait.
+   */
+  async function televerser(fichier: File) {
+    setErreurEnvoi(null);
+    setEnvoi(true);
+    try {
+      const corps = new FormData();
+      corps.append("fichier", fichier);
+      const reponse = await fetch("/api/admin/media", { method: "POST", body: corps });
+      const donnees = await reponse.json();
+
+      if (!reponse.ok) {
+        setErreurEnvoi(t(`upload_${donnees.erreur ?? "illisible"}`));
+        return;
+      }
+
+      // Le champ d'adresse est controle : le mettre a jour suffit, il se
+      // remplit et sera soumis avec le formulaire.
+      setPreview(donnees.url);
+    } catch {
+      setErreurEnvoi(t("upload_illisible"));
+    } finally {
+      setEnvoi(false);
+    }
+  }
 
   return (
     <form action={formAction} className="grid gap-5 xl:grid-cols-[1fr_20rem] xl:items-start">
@@ -144,13 +177,30 @@ export function ProductForm({
               min="1"
               defaultValue={values.minOrder}
             />
-            <Field
-              label={t("warranty")}
-              name="warrantyMonths"
-              type="number"
-              min="0"
-              defaultValue={values.warrantyMonths}
-            />
+            <div>
+              <label htmlFor="warrantyValue" className="label">
+                {t("warranty")}
+              </label>
+              {/* Valeur et unite cote a cote : certains accessoires sont
+                  garantis quelques jours, d'autres plusieurs annees. */}
+              <div className="flex gap-2">
+                <input
+                  id="warrantyValue"
+                  name="warrantyValue"
+                  type="number"
+                  min={0}
+                  defaultValue={values.warrantyValue}
+                  className="input w-24"
+                />
+                <select name="warrantyUnit" defaultValue={values.warrantyUnit} className="input flex-1">
+                  {WARRANTY_UNITS.map((u) => (
+                    <option key={u} value={u}>
+                      {tWarranty(u)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -368,13 +418,36 @@ export function ProductForm({
           </div>
 
           <div className="mt-3">
+            <label htmlFor="fichierImage" className="label">
+              {t("uploadLabel")}
+            </label>
+            <input
+              id="fichierImage"
+              type="file"
+              accept="image/webp,image/avif,image/jpeg,image/png,image/svg+xml"
+              disabled={envoi}
+              onChange={(event) => {
+                const fichier = event.target.files?.[0];
+                if (fichier) void televerser(fichier);
+                event.target.value = "";
+              }}
+              className="input file:me-3 file:rounded-md file:border-0 file:bg-surface-3 file:px-3 file:py-1 file:text-xs"
+            />
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-2">
+              {envoi && <Loader2 className="size-3 animate-spin" />}
+              {envoi ? t("uploadPending") : t("uploadHint")}
+            </p>
+            {erreurEnvoi && <p className="mt-1 text-xs text-danger">{erreurEnvoi}</p>}
+          </div>
+
+          <div className="mt-3">
             <label htmlFor="imageUrl" className="label">
               {t("imageUrl")}
             </label>
             <input
               id="imageUrl"
               name="imageUrl"
-              defaultValue={values.imageUrl}
+              value={preview}
               onChange={(event) => setPreview(event.target.value)}
               placeholder={t("imageUrlPlaceholder")}
               className="input"

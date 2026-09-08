@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { Metadata } from "next";
-import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
+import { getFormat } from "@/lib/server-format";
 import { ArrowRight, Flame, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { db } from "@/lib/db";
@@ -47,7 +48,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const [t, tCommon, format, user] = await Promise.all([
     getTranslations("home"),
     getTranslations("common"),
-    getFormatter(),
+    getFormat(),
     getCurrentUser(),
   ]);
 
@@ -93,7 +94,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
   const [productCount, brandCount, orderCount] = stats;
   const hero = decorate(featured[0]);
-  const price = (value: number) => format.number(value / 100, "currency");
+  const price = (value: number) => format.price(value);
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-6 lg:px-6 lg:py-8">

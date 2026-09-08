@@ -2,7 +2,7 @@ import { Link } from "@/i18n/navigation";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { CheckCircle2, ChevronLeft, MapPin, Truck } from "lucide-react";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -27,7 +27,7 @@ export default async function AccountOrderDetailPage({
   params: Promise<{ id: string; locale: string }>;
   searchParams: Promise<{ nouvelle?: string }>;
 }) {
-  const [{ id, locale: rawLocale }, { nouvelle }, t, tStatus, tCart, tCommon, tCountries, user] =
+  const [{ id, locale: rawLocale }, { nouvelle }, t, tStatus, tCart, tCommon, user] =
     await Promise.all([
       params,
       searchParams,
@@ -35,9 +35,12 @@ export default async function AccountOrderDetailPage({
       getTranslations("orderStatus"),
       getTranslations("cart"),
       getTranslations("common"),
-      getTranslations("countries"),
       requireUser(),
     ]);
+  // Declare la langue a next-intl. Les segments rendent en parallele : sans
+  // cet appel, une page peut lire la langue avant que sa mise en page ne
+  // l'ait posee et retomber sur la langue par defaut.
+  setRequestLocale(toLocale(rawLocale));
   const tag = LOCALE_TAGS[toLocale(rawLocale)];
 
   const order = await db.order.findUnique({
@@ -50,7 +53,6 @@ export default async function AccountOrderDetailPage({
 
   const currentStep = TIMELINE.indexOf(order.status as (typeof TIMELINE)[number]);
   const isCancelled = ["CANCELLED", "REFUNDED"].includes(order.status);
-  const known = ["France", "Belgique", "Suisse", "Luxembourg", "Espagne", "Allemagne"];
 
   return (
     <div>
@@ -193,9 +195,7 @@ export default async function AccountOrderDetailPage({
                 <dd className="tabular-nums">{formatPrice(order.total, tag)}</dd>
               </div>
             </dl>
-            <p className="mt-3 text-xs text-muted-2">
-              {t("paidWith", { method: order.paymentMethod })}
-            </p>
+            <p className="mt-3 text-xs text-muted-2">{t("paidCash")}</p>
           </section>
 
           <section className="surface-card p-5">
@@ -204,18 +204,13 @@ export default async function AccountOrderDetailPage({
               {t("delivery")}
             </h2>
             <address className="mt-3 space-y-0.5 text-sm not-italic text-muted">
-              <p className="font-medium text-foreground">{order.shipFullName}</p>
-              <p>{order.shipLine1}</p>
-              {order.shipLine2 && <p>{order.shipLine2}</p>}
-              <p>
-                {order.shipZip} {order.shipCity}
+              <p className="font-medium text-foreground">
+                {order.shipFirstName} {order.shipLastName}
               </p>
-              <p>{known.includes(order.shipCountry) ? tCountries(order.shipCountry) : order.shipCountry}</p>
-              {order.shipPhone && (
-                <p className="pt-1" dir="ltr">
-                  {order.shipPhone}
-                </p>
-              )}
+              <p>{order.shipCommune}</p>
+              <p>
+                {String(order.shipWilayaCode).padStart(2, "0")} {order.shipWilaya}
+              </p>
             </address>
           </section>
 

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getSeoSettings } from "@/lib/seo";
 import { resolveCategory, resolveProduct, translationFilter } from "@/lib/content";
 import { ogFonts, OG_FONT_FAMILY } from "@/lib/og-fonts";
+import { formatPrice } from "@/lib/format";
 import { LOCALE_DIRECTION, LOCALE_TAGS, toLocale } from "@/i18n/routing";
 
 export const alt = "Pravia";
@@ -48,12 +49,7 @@ export default async function Image({
     : null;
 
   const direction = LOCALE_DIRECTION[locale];
-  const price = product
-    ? new Intl.NumberFormat(LOCALE_TAGS[locale], {
-        style: "currency",
-        currency: "EUR",
-      }).format(product.price / 100)
-    : "";
+  const price = product ? formatPrice(product.price, LOCALE_TAGS[locale]) : "";
 
   return new ImageResponse(
     (

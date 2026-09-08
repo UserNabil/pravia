@@ -14,10 +14,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AddressesPage() {
-  const [t, tCheckout, tCountries, user] = await Promise.all([
+  const [t, tCheckout, user] = await Promise.all([
     getTranslations("customerAccount"),
     getTranslations("checkout"),
-    getTranslations("countries"),
     requireUser(),
   ]);
 
@@ -41,11 +40,11 @@ export default async function AddressesPage() {
   const linkedIds = new Set(accounts.map((a) => a.provider));
   const labels = new Map(available.map((p) => [p.id as string, p.label]));
 
-  // Le pays est stocke sous son libelle francais : on le traduit a l'affichage.
-  const countryLabel = (value: string) => {
-    const known = ["France", "Belgique", "Suisse", "Luxembourg", "Espagne", "Allemagne"];
-    return known.includes(value) ? tCountries(value) : value;
-  };
+  // La boutique ne livre qu'en Algerie : seule la wilaya est a nommer, depuis
+  // son code officiel conserve sur l'adresse.
+  const wilayas = await db.wilaya.findMany({ select: { code: true, name: true } });
+  const parCode = new Map(wilayas.map((w) => [w.code, w.name]));
+  const wilayaName = (code: number) => parCode.get(code) ?? String(code);
 
   return (
     <div className="space-y-5">
@@ -103,18 +102,14 @@ export default async function AddressesPage() {
                   )}
                 </div>
                 <address className="mt-2.5 space-y-0.5 text-sm not-italic text-muted">
-                  <p className="font-medium text-foreground">{address.fullName}</p>
-                  <p>{address.line1}</p>
-                  {address.line2 && <p>{address.line2}</p>}
-                  <p>
-                    {address.zip} {address.city}
+                  <p className="font-medium text-foreground">
+                    {address.firstName} {address.lastName}
                   </p>
-                  <p>{countryLabel(address.country)}</p>
-                  {address.phone && (
-                    <p className="pt-1" dir="ltr">
-                      {address.phone}
-                    </p>
-                  )}
+                  <p>{address.commune}</p>
+                  <p>
+                    {String(address.wilayaCode).padStart(2, "0")}{" "}
+                    {wilayaName(address.wilayaCode)}
+                  </p>
                 </address>
               </article>
             ))}

@@ -1,5 +1,5 @@
 import { redirectLocalized } from "@/lib/redirect";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -24,6 +24,11 @@ export default async function AdminLayout({
   params: Promise<{ locale: string }>;
 }) {
   const [{ locale: rawLocale }, user] = await Promise.all([params, getCurrentUser()]);
+  // next-intl exige que chaque mise en page declare sa langue : les segments
+  // rendent en parallele, et sans cet appel une mise en page peut lire la
+  // langue avant que la racine ne l'ait posee — elle retombe alors sur la
+  // langue par defaut, et /fr affiche de l'arabe.
+  setRequestLocale(toLocale(rawLocale));
   const locale = toLocale(rawLocale);
 
   if (!user) return redirectLocalized("/connexion?redirectTo=/admin", locale);

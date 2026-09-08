@@ -19,6 +19,7 @@ import {
   Store,
   Tags,
   TrendingUp,
+  Truck,
   Users,
   X,
 } from "lucide-react";
@@ -58,6 +59,7 @@ const SECTIONS: { group: string; links: NavLink[] }[] = [
     links: [
       { href: "/admin/commandes", key: "orders", Icon: ShoppingCart },
       { href: "/admin/clients", key: "customers", Icon: Users },
+      { href: "/admin/livraison", key: "shipping", Icon: Truck },
     ],
   },
   {

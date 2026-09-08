@@ -1,7 +1,7 @@
 import { Link } from "@/i18n/navigation";
 import Image from "next/image";
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ArrowRight, Package } from "lucide-react";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -21,12 +21,17 @@ export default async function AccountOrdersPage({
 }: {
   params: Promise<{ locale: string }>;
 }) {
-  const [{ locale: rawLocale }, t, tStatus, tCart, user] = await Promise.all([
-    params,
+  const { locale: rawLocale } = await params;
+  // La langue est declaree avant toute traduction : getTranslations la lit
+  // au moment de son appel, donc l'attendre dans le meme Promise.all que
+  // params la ferait retomber sur la langue par defaut.
+  setRequestLocale(toLocale(rawLocale));
+
+  const [t, tStatus, tCart, user] = await Promise.all([
     getTranslations("orders"),
     getTranslations("orderStatus"),
     getTranslations("cart"),
-    requireUser(),
+    requireUser()
   ]);
   const tag = LOCALE_TAGS[toLocale(rawLocale)];
 

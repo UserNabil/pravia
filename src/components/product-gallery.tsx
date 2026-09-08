@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useVariantes } from "./variant-picker";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/format";
@@ -14,6 +15,15 @@ export function ProductGallery({
 }) {
   const t = useTranslations("product");
   const [active, setActive] = useState(0);
+  const { choisie } = useVariantes();
+
+  // Choisir une couleur amene sa photo au premier plan. Si la teinte n'a pas
+  // de visuel propre, la galerie ne bouge pas plutot que d'afficher un vide.
+  useEffect(() => {
+    if (!choisie?.imageUrl) return;
+    const rang = images.findIndex((i) => i.url === choisie.imageUrl);
+    if (rang >= 0) setActive(rang);
+  }, [choisie, images]);
 
   if (!images.length) {
     return (

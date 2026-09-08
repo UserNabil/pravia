@@ -1,6 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -46,7 +46,13 @@ export default async function AdminSeoPage({
 }: {
   params: Promise<{ locale: string }>;
 }) {
-  const [{ locale: rawLocale }, t] = await Promise.all([params, getTranslations("admin.seo")]);
+  const { locale: rawLocale } = await params;
+  // La langue est declaree avant toute traduction : getTranslations la lit
+  // au moment de son appel, donc l'attendre dans le meme Promise.all que
+  // params la ferait retomber sur la langue par defaut.
+  setRequestLocale(toLocale(rawLocale));
+
+  const t = await getTranslations("admin.seo");
   const tag = LOCALE_TAGS[toLocale(rawLocale)];
 
   const [settings, audit, storedPages] = await Promise.all([

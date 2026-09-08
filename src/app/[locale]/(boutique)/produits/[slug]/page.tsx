@@ -1,19 +1,21 @@
 import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { CheckCircle2, PackageCheck, RotateCcw, ShieldCheck, Truck, XCircle } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getProductBySlug, getRelatedProducts } from "@/lib/queries";
 import { ProductGallery } from "@/components/product-gallery";
 import { BuyBox } from "@/components/buy-box";
+import { VariantProvider } from "@/components/variant-picker";
 import { ProductCard } from "@/components/product-card";
 import { ReviewForm } from "@/components/review-form";
 import { Stars } from "@/components/stars";
 import { formatPrice, formatDate, cn } from "@/lib/format";
 import { resolveProduct, translationFilter } from "@/lib/content";
-import { FREE_SHIPPING_THRESHOLD, SHIPPING_FLAT_RATE } from "@/lib/constants";
+import { FREE_SHIPPING_THRESHOLD } from "@/lib/constants";
+import { cheapestShippingFee } from "@/lib/shipping";
 import { LOCALE_TAGS, toLocale } from "@/i18n/routing";
 import { breadcrumbSchema, buildMetadata, getSiteUrl, jsonLd, productSchema } from "@/lib/seo";
 
@@ -25,6 +27,10 @@ export async function generateMetadata({
   params: Promise<{ slug: string; locale: string }>;
 }): Promise<Metadata> {
   const { slug, locale: rawLocale } = await params;
+  // Declare la langue a next-intl. Les segments rendent en parallele : sans
+  // cet appel, une page peut lire la langue avant que sa mise en page ne
+  // l'ait posee et retomber sur la langue par defaut.
+  setRequestLocale(toLocale(rawLocale));
   const locale = toLocale(rawLocale);
   const t = await getTranslations({ locale, namespace: "product" });
 
@@ -50,11 +56,7 @@ export async function generateMetadata({
   if (!row) return { title: t("notFound"), robots: { index: false, follow: false } };
 
   const product = resolveProduct(row);
-  const price = new Intl.NumberFormat(LOCALE_TAGS[locale], {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(product.price / 100);
+  const price = formatPrice(product.price, LOCALE_TAGS[locale]);
 
   return buildMetadata({
     title: product.metaTitle?.trim() || t("metaTitle", { title: product.title, brand: product.brand.name }),
@@ -84,6 +86,7 @@ export default async function ProductPage({
   const { slug, locale: rawLocale } = await params;
   const locale = toLocale(rawLocale);
   const tag = LOCALE_TAGS[locale];
+  const tWarrantyUnit = await getTranslations("warrantyUnit");
 
   const [t, tCatalogue, tCondition, tReviews, product] = await Promise.all([
     getTranslations("product"),
@@ -118,6 +121,9 @@ export default async function ProductPage({
       : 0;
 
   const freeShipping = product.price >= FREE_SHIPPING_THRESHOLD;
+  // Le tarif reel depend de la wilaya de livraison, inconnue a ce stade : la
+  // fiche annonce le plus bas de la grille.
+  const fromShipping = freeShipping ? 0 : await cheapestShippingFee();
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-6 lg:px-6">
@@ -180,6 +186,7 @@ export default async function ProductPage({
       </nav>
 
       <div className="mt-5 grid gap-8 lg:grid-cols-[1.1fr_1fr] xl:gap-12">
+        <VariantProvider variantes={product.variants}>
         <ProductGallery images={product.images} title={product.title} />
 
         <div>
@@ -261,7 +268,7 @@ export default async function ProductPage({
               title={
                 freeShipping
                   ? t("freeShipping")
-                  : t("paidShipping", { price: formatPrice(SHIPPING_FLAT_RATE, tag) })
+                  : t("paidShipping", { price: formatPrice(fromShipping, tag) })
               }
               text={
                 freeShipping
@@ -273,7 +280,9 @@ export default async function ProductPage({
             />
             <Perk
               Icon={ShieldCheck}
-              title={t("warranty", { months: product.warrantyMonths })}
+              title={t("warranty", {
+                duration: `${product.warrantyValue} ${tWarrantyUnit(product.warrantyUnit)}`,
+              })}
               text={t("warrantyText")}
             />
             <Perk Icon={RotateCcw} title={t("returns")} text={t("returnsText")} />
@@ -282,6 +291,7 @@ export default async function ProductPage({
             )}
           </div>
         </div>
+        </VariantProvider>
       </div>
 
       {/* -------------------------------------------------- description */}

@@ -1,6 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import Image from "next/image";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import {
   AlertTriangle,
   Euro,
@@ -25,7 +25,13 @@ export default async function AdminDashboardPage({
 }: {
   params: Promise<{ locale: string }>;
 }) {
-  const [{ locale: rawLocale }, t] = await Promise.all([params, getTranslations("admin.dashboard")]);
+  const { locale: rawLocale } = await params;
+  // La langue est declaree avant toute traduction : getTranslations la lit
+  // au moment de son appel, donc l'attendre dans le meme Promise.all que
+  // params la ferait retomber sur la langue par defaut.
+  setRequestLocale(toLocale(rawLocale));
+
+  const t = await getTranslations("admin.dashboard");
   const tag = LOCALE_TAGS[toLocale(rawLocale)];
 
   const now = new Date();
@@ -227,11 +233,13 @@ export default async function AdminDashboardPage({
                     <span className="flex items-center gap-2">
                       <span
                         className="flex size-6 shrink-0 items-center justify-center rounded-full text-[0.625rem] font-bold text-white"
-                        style={{ backgroundColor: order.user.avatarColor }}
+                        style={{ backgroundColor: order.user?.avatarColor ?? "#64748b" }}
                       >
-                        {order.user.name.slice(0, 1)}
+                        {(order.user?.name ?? order.shipFirstName).slice(0, 1)}
                       </span>
-                      <span className="truncate text-xs">{order.user.name}</span>
+                      <span className="truncate text-xs">
+                        {order.user?.name ?? `${order.shipFirstName} ${order.shipLastName}`}
+                      </span>
                     </span>
                   </Td>
                   <Td className="whitespace-nowrap text-xs text-muted-2">

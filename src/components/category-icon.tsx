@@ -1,26 +1,35 @@
 import {
-  Camera,
-  Cpu,
-  Gamepad2,
+  AudioLines,
+  BatteryCharging,
+  Cable,
   Headphones,
-  Laptop,
-  Monitor,
   Package,
+  PlugZap,
+  ShieldCheck,
   Smartphone,
-  Tablet,
+  SmartphoneCharging,
+  Tv,
   Watch,
 } from "lucide-react";
 
+/**
+ * Icones des categories.
+ *
+ * La boutique ne vend que des accessoires de telephone : la liste suit ce
+ * perimetre, et non l'assortiment generaliste d'origine. Ajouter une categorie
+ * demande d'ajouter son icone ici, faute de quoi elle retombe sur le carton.
+ */
 const ICONS = {
   smartphone: Smartphone,
-  laptop: Laptop,
-  tablet: Tablet,
+  shield: ShieldCheck,
+  plug: PlugZap,
+  cable: Cable,
+  battery: BatteryCharging,
+  airpods: AudioLines,
   headphones: Headphones,
   watch: Watch,
-  "gamepad-2": Gamepad2,
-  camera: Camera,
-  cpu: Cpu,
-  monitor: Monitor,
+  tv: Tv,
+  stand: SmartphoneCharging,
   package: Package,
 } as const;
 

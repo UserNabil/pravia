@@ -32,9 +32,7 @@
     "categories": "Categories",
     "bestSellers": "Best sellers",
     "newArrivals": "New arrivals",
-    "tradeAssurance": "Trade Assurance",
     "customerService": "Customer service",
-    "sellerArea": "Sell on Pravia",
     "allCatalogue": "Full catalogue",
     "openMenu": "Open menu",
     "navigation": "Navigation",
@@ -42,7 +40,9 @@
     "theme": "Theme",
     "language": "Language",
     "backoffice": "Back office",
-    "viewShop": "View shop"
+    "viewShop": "View shop",
+    "shop": "Shop",
+    "menu": "Menu"
   },
   "account": {
     "signIn": "Sign in",
@@ -176,7 +176,7 @@
     "freeShippingText": "Dispatched within 24 h, delivered in 2 to 3 working days",
     "paidShipping": "Delivery {price}",
     "paidShippingText": "Free over {threshold}",
-    "warranty": "{months}-month warranty",
+    "warranty": "{duration} warranty",
     "warrantyText": "Parts and labour fully covered",
     "returns": "Free returns for 30 days",
     "returnsText": "Refunded within 5 working days of receipt",
@@ -241,18 +241,20 @@
     "country": "Country",
     "saveAddress": "Save this address to my address book",
     "paymentMethod": "Payment method",
-    "card": "Card",
-    "cardHint": "Visa, Mastercard, Amex",
-    "paypal": "PayPal",
-    "paypalHint": "Pay in 4 available",
-    "transfer": "Bank transfer",
-    "transferHint": "Ships once payment clears",
-    "cardNumber": "Card number",
-    "cardExpiry": "Expiry",
-    "cardCvc": "CVC",
     "demoNotice": "Demo environment: no real payment is taken and these fields are never transmitted.",
     "confirm": "Confirm and pay",
-    "yourOrder": "Your order"
+    "yourOrder": "Your order",
+    "noAccountNeeded": "No account needed to place an order.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "wilaya": "Province (wilaya)",
+    "chooseWilaya": "Select a province",
+    "commune": "Municipality (commune)",
+    "chooseCommune": "Select a municipality",
+    "chooseWilayaFirst": "Select a province first",
+    "shippingPending": "Depends on municipality",
+    "cash": "Cash on delivery",
+    "cashHint": "You pay in cash when your parcel arrives."
   },
   "orders": {
     "title": "My orders",
@@ -270,9 +272,13 @@
     "trackingNumber": "Tracking number:",
     "items": "{count, plural, one {# item} other {# items}}",
     "summary": "Summary",
-    "paidWith": "Paid by {method}",
     "delivery": "Delivery",
-    "orderAgain": "Order again"
+    "orderAgain": "Order again",
+    "guestConfirmedText": "Thank you! Your order is recorded. Keep the number below: it will be asked for any follow-up.",
+    "createAccountHint": "Create an account to find your orders again at any time.",
+    "createAccountCta": "Create an account",
+    "keepShopping": "Keep shopping",
+    "paidCash": "Paid in cash on delivery"
   },
   "orderStatus": {
     "PENDING": "Pending",
@@ -401,9 +407,9 @@
     "shipping": {
       "title": "Delivery and tracking",
       "q1": "How long does delivery take?",
-      "a1": "Orders placed before 3 pm ship the same day for products marked “ready to ship”. Allow 2 to 3 working days after that within the UK, and 3 to 5 days for the Republic of Ireland and mainland Europe.",
+      "a1": "Orders confirmed before 3pm ship the same day for items marked \"ships now\". Allow 2 to 3 days for the north of the country, 3 to 5 days for the southern provinces.",
       "q2": "Is delivery free?",
-      "a2": "Yes, on orders over £150. Below that, a flat £9.90 applies however many items you order.",
+      "a2": "The fee depends on the province and municipality you are shipping to. It appears at checkout as soon as you pick your destination.",
       "q3": "How do I track my parcel?",
       "a3": "As soon as it ships, a tracking number appears on your order, under “My account” then “My orders”."
     },
@@ -427,10 +433,10 @@
     },
     "payment": {
       "title": "Payment",
-      "q1": "Which payment methods do you accept?",
-      "a1": "Card (Visa, Mastercard, Amex) with 3-D Secure authentication, PayPal, and bank transfer for business orders.",
-      "q2": "Can I pay in instalments?",
-      "a2": "Yes, in 3 or 4 interest-free instalments via PayPal, for baskets between £100 and £3,000."
+      "q1": "How does payment work?",
+      "a1": "Payment is in cash, on delivery. Nothing is charged when you order: the courier collects the amount when handing over your parcel.",
+      "q2": "Do I need an account to order?",
+      "a2": "No. Ordering takes no sign-up: first name, last name, province and municipality are enough. An account only helps you find your past orders later."
     },
     "sellers": {
       "title": "Become a seller",
@@ -496,7 +502,13 @@
     "sessionExpired": "Session expired.",
     "linkNotFound": "Link not found.",
     "lastSignInMethod": "You cannot remove the only sign-in method on this account. Set a password first.",
-    "linkRemoved": "Link removed."
+    "linkRemoved": "Link removed.",
+    "firstNameRequired": "First name required",
+    "lastNameRequired": "Last name required",
+    "wilayaRequired": "Select a province",
+    "communeRequired": "Select a municipality",
+    "wilayaUnknown": "This province is not served",
+    "communeUnknown": "This municipality is not in the selected province"
   },
   "countries": {
     "France": "France",
@@ -512,7 +524,7 @@
     "tagline": "The tech hardware marketplace",
     "subtitle": "Smartphones, laptops, audio, gaming and components — new or refurbished.",
     "badge1": "24-month warranty",
-    "badge2": "Free delivery over 150 EUR",
+    "badge2": "Delivery across Algeria",
     "badge3": "30-day returns",
     "inStock": "In stock",
     "outOfStock": "Out of stock",
@@ -547,7 +559,8 @@
       "seo": "SEO",
       "search": "Internal search",
       "connections": "Sign-in providers",
-      "settings": "Settings"
+      "settings": "Settings",
+      "shipping": "Shipping"
     },
     "common": {
       "pageOf": "Page {page} of {total}",
@@ -729,7 +742,8 @@
       "dispatch": "Dispatch",
       "payment": "Payment",
       "trackingShort": "Tracking",
-      "updatedAt": "Updated"
+      "updatedAt": "Updated",
+      "guestOrder": "Guest order"
     },
     "customers": {
       "title": "Customers",
@@ -830,9 +844,7 @@
       "shipping": "Delivery",
       "shippingHint": "Amounts are in cents of a euro.",
       "freeThreshold": "Free delivery threshold",
-      "freeThresholdHint": "15000 = 150.00 EUR",
-      "flatRate": "Flat delivery fee",
-      "flatRateHint": "990 = 9.90 EUR",
+      "freeThresholdHint": "30000000 = 300,000 DA",
       "banner": "Promotional banner",
       "bannerHint": "Shown at the top of every shop page. Leave empty to hide it.",
       "bannerText": "Banner text",
@@ -973,13 +985,13 @@
       "description": "Description",
       "descriptionPlaceholder": "Describe the product, its strengths and its uses.",
       "priceStock": "Price and stock",
-      "price": "Sale price (EUR)",
-      "compareAtPrice": "Strike-through price (EUR)",
+      "price": "Sale price (DA)",
+      "compareAtPrice": "Strike-through price (DA)",
       "compareAtPriceHint": "Leave empty if there is no promotion",
       "stock": "Stock",
       "sku": "Reference (SKU)",
       "minOrder": "Minimum quantity",
-      "warranty": "Warranty (months)",
+      "warranty": "Warranty",
       "specs": "Specifications",
       "addSpec": "Add",
       "specLabelPlaceholder": "Display",
@@ -1019,9 +1031,18 @@
       "noImage": "No image",
       "imageUrl": "Image URL",
       "imageUrlPlaceholder": "/products/my-product.svg",
-      "imageUrlHint": "Local path (public folder) or absolute URL.",
+      "imageUrlHint": "Filled in automatically after upload, or paste a URL.",
       "translations": "Translations",
-      "translationsHint": "An empty field falls back on the reference version: a half-translated record stays readable."
+      "translationsHint": "An empty field falls back on the reference version: a half-translated record stays readable.",
+      "uploadLabel": "Upload an image",
+      "uploadHint": "JPEG, PNG, WebP, AVIF or SVG, 8 MB maximum.",
+      "uploadPending": "Uploading...",
+      "upload_type": "Format not accepted.",
+      "upload_taille": "File too large (8 MB maximum).",
+      "upload_vide": "No file selected.",
+      "upload_illisible": "Upload failed, try again.",
+      "upload_refuse": "Session expired, sign in again.",
+      "upload_stockage": "CDN upload refused. Check the R2 configuration."
     },
     "seo": {
       "title": "SEO",
@@ -1079,5 +1100,10 @@
       "noIndex": "Exclude from the index",
       "save": "Save"
     }
+  },
+  "warrantyUnit": {
+    "DAY": "day(s)",
+    "MONTH": "month(s)",
+    "YEAR": "year(s)"
   }
 }

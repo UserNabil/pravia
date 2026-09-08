@@ -1,6 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ChevronLeft, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/admin/ui";
@@ -21,6 +21,10 @@ export default async function EditProductPage({
     params,
     getTranslations("admin.productForm"),
   ]);
+  // Declare la langue a next-intl. Les segments rendent en parallele : sans
+  // cet appel, une page peut lire la langue avant que sa mise en page ne
+  // l'ait posee et retomber sur la langue par defaut.
+  setRequestLocale(toLocale(rawLocale));
   const tag = LOCALE_TAGS[toLocale(rawLocale)];
 
   const [product, categories, brands] = await Promise.all([
@@ -88,7 +92,8 @@ export default async function EditProductPage({
           sku: product.sku,
           condition: product.condition,
           minOrder: String(product.minOrder),
-          warrantyMonths: String(product.warrantyMonths),
+          warrantyValue: String(product.warrantyValue),
+          warrantyUnit: product.warrantyUnit,
           categoryId: product.categoryId,
           brandId: product.brandId,
           storage: product.storage ?? "",

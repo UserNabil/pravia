@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { AlertTriangle, CheckCircle2, ExternalLink, KeyRound, Users } from "lucide-react";
 import { db } from "@/lib/db";
 import { PageHeader, StatCard, TableShell, Td, Th, EmptyRow } from "@/components/admin/ui";
@@ -51,10 +51,13 @@ export default async function AdminConnectionsPage({
 }: {
   params: Promise<{ locale: string }>;
 }) {
-  const [{ locale: rawLocale }, t] = await Promise.all([
-    params,
-    getTranslations("admin.connections"),
-  ]);
+  const { locale: rawLocale } = await params;
+  // La langue est declaree avant toute traduction : getTranslations la lit
+  // au moment de son appel, donc l'attendre dans le meme Promise.all que
+  // params la ferait retomber sur la langue par defaut.
+  setRequestLocale(toLocale(rawLocale));
+
+  const t = await getTranslations("admin.connections");
   const tag = LOCALE_TAGS[toLocale(rawLocale)];
 
   const [siteUrl, accounts, byProvider, usersWithoutPassword] = await Promise.all([

@@ -1,5 +1,6 @@
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
+import { toLocale } from "@/i18n/routing";
 import { ArrowLeft, PackageCheck, ShieldCheck, Truck } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -10,7 +11,20 @@ const HIGHLIGHTS = [
   { Icon: ShieldCheck, key: "aside3" },
 ] as const;
 
-export default async function AuthLayout({ children }: { children: React.ReactNode }) {
+export default async function AuthLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  // next-intl exige que chaque mise en page declare sa langue : les segments
+  // rendent en parallele, et sans cet appel une mise en page peut lire la
+  // langue avant que la racine ne l'ait posee — elle retombe alors sur la
+  // langue par defaut, et /fr afficherait de l'arabe.
+  setRequestLocale(toLocale(locale));
+
   const t = await getTranslations("auth");
 
   return (

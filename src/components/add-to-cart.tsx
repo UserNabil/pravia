@@ -10,6 +10,7 @@ import { cn } from "@/lib/format";
 
 export function AddToCartButton({
   productId,
+  variantId = null,
   quantity = 1,
   disabled = false,
   className,
@@ -17,6 +18,7 @@ export function AddToCartButton({
   label,
 }: {
   productId: string;
+  variantId?: string | null;
   quantity?: number;
   disabled?: boolean;
   className?: string;
@@ -40,7 +42,7 @@ export function AddToCartButton({
 
   function handleClick() {
     startTransition(async () => {
-      const result = await addToCartAction(productId, quantity);
+      const result = await addToCartAction(productId, quantity, variantId);
       // Le serveur renvoie une cle de message, traduite ici cote client.
       toast(tToast(result.messageKey, result.values), result.ok ? "success" : "error");
 

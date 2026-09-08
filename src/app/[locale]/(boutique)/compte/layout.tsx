@@ -1,5 +1,5 @@
 import { Link } from "@/i18n/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { redirectLocalized } from "@/lib/redirect";
 import { Heart, LayoutDashboard, MapPin, Package } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
@@ -27,6 +27,12 @@ export default async function AccountLayout({
     getCurrentUser(),
     getTranslations("account"),
   ]);
+  // next-intl exige que chaque mise en page declare sa langue : les segments
+  // rendent en parallele, et sans cet appel une mise en page peut lire la
+  // langue avant que la racine ne l'ait posee — elle retombe alors sur la
+  // langue par defaut, et /fr afficherait de l'arabe.
+  setRequestLocale(toLocale(rawLocale));
+
   if (!user) return redirectLocalized("/connexion?redirectTo=/compte", toLocale(rawLocale));
 
   return (

@@ -1,7 +1,7 @@
 {
   "meta": {
     "defaultTitle": "Pravia — Materiel technologique neuf et reconditionne",
-    "defaultDescription": "Smartphones, ordinateurs, audio, gaming et composants. Materiel technologique neuf ou reconditionne, garanti jusqu'a 24 mois, livraison offerte des 150 EUR.",
+    "defaultDescription": "Smartphones, ordinateurs, audio, gaming et composants. Materiel technologique neuf ou reconditionne, garanti jusqu'a 24 mois, livraison dans les 58 wilayas.",
     "keywords": "marketplace high-tech,smartphone,ordinateur portable,reconditionne,gaming,composants PC,audio"
   },
   "common": {
@@ -32,9 +32,7 @@
     "categories": "Categories",
     "bestSellers": "Meilleures ventes",
     "newArrivals": "Nouveautes",
-    "tradeAssurance": "Trade Assurance",
     "customerService": "Service client",
-    "sellerArea": "Espace vendeur",
     "allCatalogue": "Tout le catalogue",
     "openMenu": "Ouvrir le menu",
     "navigation": "Navigation",
@@ -42,7 +40,9 @@
     "theme": "Theme",
     "language": "Langue",
     "backoffice": "Back-office",
-    "viewShop": "Voir la boutique"
+    "viewShop": "Voir la boutique",
+    "shop": "Boutique",
+    "menu": "Menu"
   },
   "account": {
     "signIn": "Connexion",
@@ -80,7 +80,7 @@
     "badge": "Selection de la semaine",
     "title": "Le meilleur du high-tech,",
     "titleAccent": "neuf ou reconditionne.",
-    "subtitle": "{products} references, {brands} marques, garanties jusqu'a 24 mois et livraison offerte des 150 EUR.",
+    "subtitle": "{products} references, {brands} marques, garanties jusqu'a 24 mois et livraison partout en Algerie.",
     "explore": "Explorer le catalogue",
     "bestSellers": "Meilleures ventes",
     "ordersHandled": "{count, plural, one {# commande traitee} other {# commandes traitees}}",
@@ -168,7 +168,7 @@
     "description": "Description",
     "specifications": "Caracteristiques",
     "storage": "Stockage",
-    "colour": "Coloris",
+    "colour": "Couleur",
     "relatedTitle": "Dans la meme categorie",
     "noImage": "Aucun visuel",
     "imageLabel": "Visuel {index}",
@@ -176,7 +176,7 @@
     "freeShippingText": "Expedition sous 24 h, livraison en 2 a 3 jours ouvres",
     "paidShipping": "Livraison {price}",
     "paidShippingText": "Offerte des {threshold} d'achat",
-    "warranty": "Garantie {months} mois",
+    "warranty": "Garantie {duration}",
     "warrantyText": "Prise en charge complete piece et main d'oeuvre",
     "returns": "Retour gratuit 30 jours",
     "returnsText": "Remboursement sous 5 jours ouvres apres reception",
@@ -241,18 +241,20 @@
     "country": "Pays",
     "saveAddress": "Enregistrer cette adresse dans mon carnet",
     "paymentMethod": "Mode de paiement",
-    "card": "Carte bancaire",
-    "cardHint": "Visa, Mastercard, CB",
-    "paypal": "PayPal",
-    "paypalHint": "Paiement en 4x disponible",
-    "transfer": "Virement",
-    "transferHint": "Expedition apres reception",
-    "cardNumber": "Numero de carte",
-    "cardExpiry": "Expiration",
-    "cardCvc": "CVC",
     "demoNotice": "Environnement de demonstration : aucun paiement reel n'est effectue et ces champs ne sont pas transmis.",
     "confirm": "Confirmer et payer",
-    "yourOrder": "Votre commande"
+    "yourOrder": "Votre commande",
+    "noAccountNeeded": "Aucun compte n'est necessaire pour commander.",
+    "firstName": "Prenom",
+    "lastName": "Nom",
+    "wilaya": "Wilaya",
+    "chooseWilaya": "Choisir une wilaya",
+    "commune": "Commune",
+    "chooseCommune": "Choisir une commune",
+    "chooseWilayaFirst": "Choisissez d'abord une wilaya",
+    "shippingPending": "Selon la commune",
+    "cash": "Paiement a la livraison",
+    "cashHint": "Vous reglez en especes a la reception de votre colis."
   },
   "orders": {
     "title": "Mes commandes",
@@ -270,9 +272,13 @@
     "trackingNumber": "Numero de suivi :",
     "items": "{count, plural, one {# article} other {# articles}}",
     "summary": "Recapitulatif",
-    "paidWith": "Regle par {method}",
     "delivery": "Livraison",
-    "orderAgain": "Commander a nouveau"
+    "orderAgain": "Commander a nouveau",
+    "guestConfirmedText": "Merci ! Votre commande est enregistree. Notez son numero : il vous sera demande pour tout suivi.",
+    "createAccountHint": "Creez un compte avec cette adresse pour retrouver vos commandes a tout moment.",
+    "createAccountCta": "Creer un compte",
+    "keepShopping": "Continuer mes achats",
+    "paidCash": "Regle en especes a la livraison"
   },
   "orderStatus": {
     "PENDING": "En attente",
@@ -335,7 +341,7 @@
     "asideText": "Creez votre compte pour suivre vos commandes, enregistrer vos favoris et retrouver votre panier sur tous vos appareils.",
     "aside1Title": "40 references selectionnees",
     "aside1Text": "Neuf et reconditionne garanti",
-    "aside2Title": "Livraison offerte des 150 EUR",
+    "aside2Title": "Livraison partout en Algerie",
     "aside2Text": "Expedition sous 24 h",
     "aside3Title": "Trade Assurance",
     "aside3Text": "Conforme ou rembourse",
@@ -368,14 +374,14 @@
   },
   "footer": {
     "tagline": "La marketplace du materiel technologique. Smartphones, ordinateurs, audio, gaming et composants : neufs ou reconditionnes, toujours garantis.",
-    "guarantee1": "Livraison offerte",
-    "guarantee1Text": "Des 150 EUR d'achat, partout en France",
+    "guarantee1": "Livraison en Algerie",
+    "guarantee1Text": "Toutes les wilayas, tarif selon la commune",
     "guarantee2": "Retours 30 jours",
     "guarantee2Text": "Retour gratuit, remboursement sous 5 jours",
-    "guarantee3": "Paiement securise",
-    "guarantee3Text": "3D Secure, paiement en 3x sans frais",
+    "guarantee3": "Paiement a la livraison",
+    "guarantee3Text": "Vous reglez en especes a la reception",
     "guarantee4": "Support 7j/7",
-    "guarantee4Text": "Une equipe basee en France, 9h-20h",
+    "guarantee4Text": "Une equipe en Algerie, 9h-20h",
     "buy": "Acheter",
     "myAccount": "Mon compte",
     "help": "Aide",
@@ -401,9 +407,9 @@
     "shipping": {
       "title": "Livraison et suivi",
       "q1": "Quels sont les delais de livraison ?",
-      "a1": "Les commandes validees avant 15 h sont expediees le jour meme pour les produits marques « expedition immediate ». Comptez ensuite 2 a 3 jours ouvres en France metropolitaine, 3 a 5 jours pour la Belgique, la Suisse et le Luxembourg.",
+      "a1": "Les commandes validees avant 15 h partent le jour meme pour les produits marques « expedition immediate ». Comptez ensuite 2 a 3 jours pour le nord du pays, 3 a 5 jours pour les wilayas du sud.",
       "q2": "La livraison est-elle offerte ?",
-      "a2": "Oui, des 150 EUR d'achat. En dessous de ce seuil, un forfait de 9,90 EUR s'applique quel que soit le nombre d'articles.",
+      "a2": "Le tarif depend de la wilaya et de la commune de livraison. Il s'affiche au moment de la commande, des que vous avez choisi votre destination.",
       "q3": "Comment suivre mon colis ?",
       "a3": "Des l'expedition, un numero de suivi apparait sur la fiche de votre commande, dans « Mon compte » puis « Mes commandes »."
     },
@@ -427,10 +433,10 @@
     },
     "payment": {
       "title": "Paiement",
-      "q1": "Quels moyens de paiement acceptez-vous ?",
-      "a1": "Carte bancaire (Visa, Mastercard, CB) avec authentification 3D Secure, PayPal, et virement bancaire pour les commandes professionnelles.",
-      "q2": "Le paiement en plusieurs fois est-il possible ?",
-      "a2": "Oui, en 3 ou 4 fois sans frais via PayPal, pour les paniers compris entre 100 et 3000 EUR."
+      "q1": "Comment se passe le paiement ?",
+      "a1": "Le paiement se fait en especes, a la livraison. Vous ne reglez rien a la commande : le livreur encaisse le montant quand il vous remet le colis.",
+      "q2": "Dois-je creer un compte pour commander ?",
+      "a2": "Non. La commande se passe sans inscription : prenom, nom, wilaya et commune suffisent. Un compte sert uniquement a retrouver vos commandes plus tard."
     },
     "sellers": {
       "title": "Devenir vendeur",
@@ -496,7 +502,13 @@
     "sessionExpired": "Session expiree.",
     "linkNotFound": "Liaison introuvable.",
     "lastSignInMethod": "Impossible de retirer la seule methode de connexion de ce compte. Definissez d'abord un mot de passe.",
-    "linkRemoved": "Liaison retiree."
+    "linkRemoved": "Liaison retiree.",
+    "firstNameRequired": "Prenom requis",
+    "lastNameRequired": "Nom requis",
+    "wilayaRequired": "Choisissez une wilaya",
+    "communeRequired": "Choisissez une commune",
+    "wilayaUnknown": "Cette wilaya n'est pas desservie",
+    "communeUnknown": "Cette commune n'existe pas dans la wilaya choisie"
   },
   "countries": {
     "France": "France",
@@ -512,7 +524,7 @@
     "tagline": "La marketplace du materiel technologique",
     "subtitle": "Smartphones, ordinateurs, audio, gaming et composants — neufs ou reconditionnes.",
     "badge1": "Garantie 24 mois",
-    "badge2": "Livraison offerte des 150 EUR",
+    "badge2": "Livraison dans toute l'Algerie",
     "badge3": "Retours 30 jours",
     "inStock": "En stock",
     "outOfStock": "Rupture",
@@ -547,7 +559,8 @@
       "seo": "Referencement",
       "search": "Recherche interne",
       "connections": "Connexions",
-      "settings": "Reglages"
+      "settings": "Reglages",
+      "shipping": "Livraison"
     },
     "common": {
       "pageOf": "Page {page} sur {total}",
@@ -729,7 +742,8 @@
       "dispatch": "Expedition",
       "payment": "Paiement",
       "trackingShort": "Suivi",
-      "updatedAt": "Mise a jour"
+      "updatedAt": "Mise a jour",
+      "guestOrder": "Commande sans compte"
     },
     "customers": {
       "title": "Clients",
@@ -828,11 +842,9 @@
       "email": "E-mail de contact",
       "phone": "Telephone",
       "shipping": "Livraison",
-      "shippingHint": "Montants exprimes en centimes d'euro.",
+      "shippingHint": "Montants exprimes en centimes de dinar. Les frais par wilaya se reglent dans Ventes > Livraison.",
       "freeThreshold": "Seuil franco de port",
-      "freeThresholdHint": "15000 = 150,00 EUR",
-      "flatRate": "Frais de port forfaitaires",
-      "flatRateHint": "990 = 9,90 EUR",
+      "freeThresholdHint": "30000000 = 300 000 DA",
       "banner": "Bandeau promotionnel",
       "bannerHint": "Affiche en haut de toutes les pages de la boutique. Laisser vide pour le masquer.",
       "bannerText": "Texte du bandeau",
@@ -973,13 +985,13 @@
       "description": "Description",
       "descriptionPlaceholder": "Decrivez le produit, ses points forts et ses usages.",
       "priceStock": "Prix et stock",
-      "price": "Prix de vente (EUR)",
-      "compareAtPrice": "Prix barre (EUR)",
+      "price": "Prix de vente (DA)",
+      "compareAtPrice": "Prix barre (DA)",
       "compareAtPriceHint": "Laisser vide si aucune promotion",
       "stock": "Stock",
       "sku": "Reference (SKU)",
       "minOrder": "Quantite minimum",
-      "warranty": "Garantie (mois)",
+      "warranty": "Garantie",
       "specs": "Caracteristiques",
       "addSpec": "Ajouter",
       "specLabelPlaceholder": "Ecran",
@@ -1019,9 +1031,18 @@
       "noImage": "Aucun visuel",
       "imageUrl": "URL de l'image",
       "imageUrlPlaceholder": "/products/mon-produit.svg",
-      "imageUrlHint": "Chemin local (dossier public) ou URL absolue.",
+      "imageUrlHint": "Rempli automatiquement apres televersement, ou collez une adresse.",
       "translations": "Traductions",
-      "translationsHint": "Un champ vide reprend la version de reference : une fiche a moitie traduite reste lisible."
+      "translationsHint": "Un champ vide reprend la version de reference : une fiche a moitie traduite reste lisible.",
+      "uploadLabel": "Televerser une image",
+      "uploadHint": "JPEG, PNG, WebP, AVIF ou SVG, 8 Mo maximum.",
+      "uploadPending": "Envoi en cours...",
+      "upload_type": "Format non accepte.",
+      "upload_taille": "Fichier trop lourd (8 Mo maximum).",
+      "upload_vide": "Aucun fichier selectionne.",
+      "upload_illisible": "Envoi impossible, reessayez.",
+      "upload_refuse": "Session expiree, reconnectez-vous.",
+      "upload_stockage": "Depot sur le CDN refuse. Verifiez la configuration R2."
     },
     "seo": {
       "title": "Referencement",
@@ -1079,5 +1100,10 @@
       "noIndex": "Exclure de l'index",
       "save": "Enregistrer"
     }
+  },
+  "warrantyUnit": {
+    "DAY": "jour(s)",
+    "MONTH": "mois",
+    "YEAR": "an(s)"
   }
 }

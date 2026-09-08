@@ -1,5 +1,5 @@
 import { Link } from "@/i18n/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Search, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
@@ -28,11 +28,16 @@ export default async function AdminCustomersPage({
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ q?: string; role?: string; page?: string }>;
 }) {
-  const [{ locale: rawLocale }, sp, t, currentAdmin] = await Promise.all([
-    params,
+  const { locale: rawLocale } = await params;
+  // La langue est declaree avant toute traduction : getTranslations la lit
+  // au moment de son appel, donc l'attendre dans le meme Promise.all que
+  // params la ferait retomber sur la langue par defaut.
+  setRequestLocale(toLocale(rawLocale));
+
+  const [sp, t, currentAdmin] = await Promise.all([
     searchParams,
     getTranslations("admin.customers"),
-    getCurrentUser(),
+    getCurrentUser()
   ]);
   const tag = LOCALE_TAGS[toLocale(rawLocale)];
   const roleOptions = [

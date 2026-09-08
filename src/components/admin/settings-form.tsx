@@ -41,6 +41,8 @@ export function SettingsForm({
           <h2 className="text-sm font-bold">{t("shipping")}</h2>
           <p className="mt-1 text-xs text-muted-2">{t("shippingHint")}</p>
 
+          {/* Les frais eux-memes se reglent par wilaya dans Ventes > Livraison :
+              il ne reste ici que le seuil au-dela duquel ils sont offerts. */}
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <Field
               label={t("freeThreshold")}
@@ -48,13 +50,6 @@ export function SettingsForm({
               type="number"
               defaultValue={values["shipping.freeThreshold"]}
               hint={t("freeThresholdHint")}
-            />
-            <Field
-              label={t("flatRate")}
-              name="shipping.flatRate"
-              type="number"
-              defaultValue={values["shipping.flatRate"]}
-              hint={t("flatRateHint")}
             />
           </div>
         </section>

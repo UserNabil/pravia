@@ -1,13 +1,13 @@
 import { Link } from "@/i18n/navigation";
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ArrowRight, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
-import { getCartWithProducts } from "@/lib/queries";
+import { getCurrentCart } from "@/lib/current-cart";
+import { cheapestShippingFee } from "@/lib/shipping";
 import { CartLine } from "@/components/cart-line";
 import { formatPrice } from "@/lib/format";
 import { LOCALE_TAGS, toLocale } from "@/i18n/routing";
-import { FREE_SHIPPING_THRESHOLD, SHIPPING_FLAT_RATE, VAT_RATE } from "@/lib/constants";
+import { FREE_SHIPPING_THRESHOLD, VAT_RATE } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -17,27 +17,21 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function CartPage({ params }: { params: Promise<{ locale: string }> }) {
-  const [{ locale: rawLocale }, t, tCommon, tAccount, user] = await Promise.all([
-    params,
+  const { locale: rawLocale } = await params;
+  // La langue est declaree avant toute traduction : getTranslations la lit
+  // au moment de son appel, donc l'attendre dans le meme Promise.all que
+  // params la ferait retomber sur la langue par defaut.
+  setRequestLocale(toLocale(rawLocale));
+
+  const [t, tCommon] = await Promise.all([
     getTranslations("cart"),
-    getTranslations("common"),
-    getTranslations("account"),
-    getCurrentUser(),
+    getTranslations("common")
   ]);
   const tag = LOCALE_TAGS[toLocale(rawLocale)];
 
-  if (!user) {
-    return (
-      <EmptyState
-        title={t("signInTitle")}
-        text={t("signInText")}
-        actionHref="/connexion?redirectTo=/panier"
-        actionLabel={tAccount("signIn")}
-      />
-    );
-  }
-
-  const { items, subtotal, count } = await getCartWithProducts(user.id);
+  // Aucune connexion exigee : le panier d'un visiteur sans compte vit dans un
+  // cookie, et se retrouve tel quel jusqu'au paiement.
+  const { items, subtotal, count } = await getCurrentCart(toLocale(rawLocale));
 
   if (!items.length) {
     return (
@@ -50,7 +44,9 @@ export default async function CartPage({ params }: { params: Promise<{ locale: s
     );
   }
 
-  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT_RATE;
+  // Le tarif exact depend de la wilaya, choisie a l'etape suivante : le panier
+  // annonce donc le tarif le plus bas de la grille, a titre indicatif.
+  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : await cheapestShippingFee();
   const tax = Math.round((subtotal * VAT_RATE) / (1 + VAT_RATE));
   const total = subtotal + shipping;
   const remaining = FREE_SHIPPING_THRESHOLD - subtotal;

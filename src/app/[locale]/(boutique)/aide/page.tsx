@@ -1,6 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { CreditCard, Mail, Phone, RotateCcw, ShieldCheck, Store, Truck } from "lucide-react";
 import { db } from "@/lib/db";
 import { buildPageMetadata, faqSchema, jsonLd } from "@/lib/seo";
@@ -14,6 +14,10 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale: rawLocale } = await params;
+  // Declare la langue a next-intl. Les segments rendent en parallele : sans
+  // cet appel, une page peut lire la langue avant que sa mise en page ne
+  // l'ait posee et retomber sur la langue par defaut.
+  setRequestLocale(toLocale(rawLocale));
   const locale = toLocale(rawLocale);
   const t = await getTranslations({ locale, namespace: "help" });
 
